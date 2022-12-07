@@ -4,6 +4,18 @@ This repo contains work on sequence-to-function learning based on language model
 
 The model was trained on 1000 PafA single amino acid mutants (obtained from "Revealing enzyme functional architecture via high-throughput microfluidic enzyme kinetics") and its prediction performance was also shown. 
 
+## Dataset Contains
+
+| Kinetic Params       |  Self-Attention     |     kmer-KNN     |
+|    :---:             |     :---:           |     :---:        |
+| kcat_cMUP            |     R =  ~ 0.64     |     R =  ~ 0.35  |
+| KM_cMUP              |     R =  ?          |     R =  ?       |
+| kcatOverKM_cMUP      |     R =  ?          |     R =  ?       |
+| kcatOverKM_MeP       |     R =  ?          |     R =  ?       |
+| kcatOverKM_MecMUP    |     R =  ?          |     R =  ?       |
+| Ki_Pi                |     R =  ?          |     R =  ?       |
+
+
 
 ## Prediction Pipeline
 <p align="center">

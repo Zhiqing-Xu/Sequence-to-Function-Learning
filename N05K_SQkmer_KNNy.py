@@ -92,8 +92,9 @@ from datetime import datetime
 from ZX01_PLOT import *
 from ZX02_nn_utils import StandardScaler, normalize_targets
 
+from Z05K_KNN import *
 
-seed=42
+seed = 0
 random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
@@ -111,7 +112,7 @@ torch.cuda.manual_seed_all(seed)
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$# 
 
 ## Args
-Step_code = "N05B_"
+Step_code = "N05K_"
 #--------------------------------------------------#
 dataset_nme_list     = ["NovoEnzyme",            # 0
                         "PafAVariants",          # 1
@@ -351,16 +352,21 @@ if os.path.exists(data_folder / embedding_file):
     print("Sequence embeddings found in one file.")
     with open( data_folder / embedding_file, 'rb') as seqs_embeddings:
         seqs_embeddings_pkl = pickle.load(seqs_embeddings)
+
     try: 
         X_seqs_all_hiddens_list = seqs_embeddings_pkl['seq_all_hiddens']
     except:
         X_seqs_all_hiddens_list = seqs_embeddings_pkl['seqs_all_hiddens']
+
+    X_seqs_all_ids_list = seqs_embeddings_pkl['seq_ids']
+
     del(seqs_embeddings_pkl)
 else:
     print("Sequence embeddings found in mulitple files.")
     embedding_file_name = embedding_file.replace(".p", "")
     embedding_file = embedding_file.replace(".p", "_0.p")
     X_seqs_all_hiddens_list_full = []
+    X_seqs_all_ids_list_full = []
     while os.path.exists(data_folder / embedding_file):
         with open( data_folder / embedding_file, 'rb') as seqs_embeddings:
             seqs_embeddings_pkl = pickle.load(seqs_embeddings)
@@ -368,14 +374,46 @@ else:
             X_seqs_all_hiddens_list = seqs_embeddings_pkl['seq_all_hiddens']
         except:
             X_seqs_all_hiddens_list = seqs_embeddings_pkl['seqs_all_hiddens']
+        X_seqs_all_ids_list = seqs_embeddings_pkl['seq_ids']
         del(seqs_embeddings_pkl)
         X_seqs_all_hiddens_list_full = X_seqs_all_hiddens_list_full + X_seqs_all_hiddens_list
-
+        X_seqs_all_ids_list_full = X_seqs_all_ids_list_full + X_seqs_all_ids_list
         next_index = str(int(embedding_file.replace(embedding_file_name + "_", "").replace(".p", "")) + 1)
         embedding_file = embedding_file_name + "_" + next_index + ".p"
 
+    X_seqs_all_ids_list = copy.deepcopy(X_seqs_all_ids_list_full)
     X_seqs_all_hiddens_list = copy.deepcopy(X_seqs_all_hiddens_list_full)
     del X_seqs_all_hiddens_list_full
+
+#====================================================================================================#
+# Get a list of all sequences.
+with open(data_folder / seqs_fasta_file) as f:
+    lines = f.readlines()
+one_sequence = ""
+X_all_seqs_list = []
+seqs_nme = ""
+for line_idx, one_line in enumerate(lines):
+    if ">seq" in one_line:
+        if one_sequence != "":
+            X_all_seqs_list.append(one_sequence)
+        # new sequence start from here
+        one_sequence = ""
+        seqs_nme = one_line.replace("\n", "")
+    if ">seq" not in one_line:
+        one_sequence = one_sequence + one_line.replace("\n", "")
+    if line_idx == len(lines) - 1:
+        X_all_seqs_list.append(one_sequence)
+
+
+#====================================================================================================#
+emb_to_seqs_dict = dict([])
+for i, (embd, seqs) in enumerate(zip(X_seqs_all_hiddens_list , X_all_seqs_list)):
+    emb_to_seqs_dict[str(embd)] = seqs
+
+
+
+
+    
 #====================================================================================================#
 # Get properties_list.
 with open( data_folder / properties_file, 'rb') as seqs_properties:
@@ -464,13 +502,20 @@ print("Number of Data Points (#y-values): ", count_y)
 #                                 Mb     dM   MM         MM     ,M   MM       MM                                  #
 #                                 P"Ybmmd"  .JMML.     .JMMmmmmMMM .JMML.   .JMML.                                #
 ###################################################################################################################
-def split_data(X_seqs_all_hiddens, y_seqs_prpty, train_split, test_split, random_state = seed):
+def split_data(X_seqs_all_hiddens, X_all_seqs_list, y_seqs_prpty, train_split, test_split, random_state = seed):
     #y_seqs_prpty=np.log10(y_seqs_prpty)
     X_tr, X_ts, y_tr, y_ts = train_test_split(X_seqs_all_hiddens, y_seqs_prpty, test_size=(1-train_split), random_state = random_state)
     X_va, X_ts, y_va, y_ts = train_test_split(X_ts, y_ts, test_size = (test_split/(1.0-train_split)) , random_state = random_state)
-    return X_tr, y_tr, X_ts, y_ts, X_va, y_va
 
-X_tr, y_tr, X_ts, y_ts, X_va, y_va = split_data(X_seqs_all_hiddens, y_seqs_prpty, 0.8, 0.1, random_state = seed)
+    X_tr_seqs = [emb_to_seqs_dict[str(one_emb)] for one_emb in X_tr]
+    X_ts_seqs = [emb_to_seqs_dict[str(one_emb)] for one_emb in X_ts]
+    X_va_seqs = [emb_to_seqs_dict[str(one_emb)] for one_emb in X_va]
+
+    return X_tr, y_tr, X_ts, y_ts, X_va, y_va, X_tr_seqs, X_ts_seqs, X_va_seqs
+
+X_tr, y_tr, X_ts, y_ts, X_va, y_va, X_tr_seqs, X_ts_seqs, X_va_seqs = \
+    split_data(X_seqs_all_hiddens, X_all_seqs_list, y_seqs_prpty, 0.8, 0.1, random_state = seed)
+
 print("len(X_tr): ", len(X_tr))
 print("len(X_ts): ", len(X_ts))
 print("len(X_va): ", len(X_va))
@@ -496,50 +541,35 @@ if log_value == False:
 #                         .JMMmmmmMMM  `Ybmd9'  `Moo9^Yo. `Wbmd"MML. `Mbmmd' .JMML.                               #
 ###################################################################################################################
 
-class ATT_dataset(data.Dataset):
-    def __init__(self, embedding, label, X_scaler = None):
-        super().__init__()
-        self.embedding = embedding
-        self.label     = label
-        self.X_scaler  = X_scaler
-    def __len__(self):
-        return len(self.embedding)
-    def __getitem__(self, idx):
-        return self.embedding[idx], self.label[idx]
-    def collate_fn(self, batch:List[Tuple[Any, ...]]) -> Dict[str, torch.Tensor]:
-        embedding, target = zip(*batch)
-        batch_size = len(embedding)
-        emb_dim = embedding[0].shape[1]
-        max_len = np.max([s.shape[0] for s in embedding],0)
-        arra = np.full([batch_size, max_len, emb_dim], 0.0)
-        seq_mask = []
-        for arr, seq in zip(arra, embedding):
-            padding_len = max_len - len(seq)
-            seq_mask.append(np.concatenate((np.ones(len(seq)), np.zeros(padding_len))).reshape(-1, max_len))
-            arrslice = tuple(slice(dim) for dim in seq.shape)
-            arr[arrslice] = seq
-        seq_mask = np.concatenate(seq_mask, axis=0)
-        arra = np.reshape(arra, (batch_size, max_len * emb_dim))
-        self.X_scaler = sklearn.preprocessing.StandardScaler() if self.X_scaler == None else self.X_scaler
-        arra = self.X_scaler.transform(arra) if hasattr(self.X_scaler, "n_features_in_") else self.X_scaler.fit_transform(arra)
-        arra = np.reshape(arra, (batch_size, max_len, emb_dim))
-        return {'embedding': torch.from_numpy(arra), 'mask': torch.from_numpy(seq_mask), 'target': torch.tensor(list(target))}
+if log_value == False:
+    y_tr = y_scalar.inverse_transform(y_tr)
+    y_ts = y_scalar.inverse_transform(y_ts)
+    y_va = y_scalar.inverse_transform(y_va)
 
-#====================================================================================================#
-def ATT_loader(dataset_class, 
-               X_tr_seqs, y_tr,
-               X_va_seqs, y_va,
-               X_ts_seqs, y_ts,
-               batch_size,):
-    X_y_tr = dataset_class(list(X_tr_seqs), y_tr, X_scaler = None)
-    X_y_va = dataset_class(list(X_va_seqs), y_va, X_y_tr.X_scaler)
-    X_y_ts = dataset_class(list(X_ts_seqs), y_ts, X_y_tr.X_scaler)
-    train_loader = data.DataLoader(X_y_tr, batch_size, True , collate_fn = X_y_tr.collate_fn)
-    valid_loader = data.DataLoader(X_y_va, batch_size, False, collate_fn = X_y_va.collate_fn)
-    test_loader  = data.DataLoader(X_y_ts, batch_size, False, collate_fn = X_y_ts.collate_fn)
-    return train_loader, valid_loader, test_loader
+if log_value == True:
+    y_tr = np.power(10, y_tr)
+    y_ts = np.power(10, y_ts)
+    y_va = np.power(10, y_va)
 
-train_loader, valid_loader, test_loader = ATT_loader(ATT_dataset, X_tr, y_tr, X_va, y_va, X_ts, y_ts, batch_size)
+
+all_data_split_dict = dict([])
+all_data_split_dict_file_output = Step_code + dataset_nme  + "_data_splt.p"
+
+all_data_split_dict["X_tr_seqs"] = X_tr_seqs           # sequences in training set.
+all_data_split_dict["X_ts_seqs"] = X_ts_seqs           # sequences in test set.
+all_data_split_dict["X_va_seqs"] = X_va_seqs           # sequences in validation set.
+
+#all_data_split_dict["X_tr_seqs_emb"] = X_tr_seqs_emb   # seqs embeddings in training set.
+#all_data_split_dict["X_ts_seqs_emb"] = X_ts_seqs_emb   # seqs embeddings in test set.
+#all_data_split_dict["X_va_seqs_emb"] = X_va_seqs_emb   # seqs embeddings in validation set.
+
+
+all_data_split_dict["y_tr"] = y_tr                     # target values in training set.
+all_data_split_dict["y_ts"] = y_ts                     # target values in test set.
+all_data_split_dict["y_va"] = y_va                     # target values in validation set.
+
+
+pickle.dump(all_data_split_dict, open(data_folder / all_data_split_dict_file_output, "wb"))
 
 
 ###################################################################################################################
@@ -553,439 +583,291 @@ train_loader, valid_loader, test_loader = ATT_loader(ATT_dataset, X_tr, y_tr, X_
 ###################################################################################################################
 
 
+#====================================================================================================#
+#   M******    `7MM     `7MMF'                              `7MM  
+#  .M            MM       MM                                  MM  
+#  |bMMAg.       MM       MM         ,pW"Wq.   ,6"Yb.    ,M""bMM  
+#       `Mb ,,   MM       MM        6W'   `Wb 8)   MM  ,AP    MM  
+#        jM db .JMML.     MM      , 8M     M8  ,pm9MM  8MI    MM  
+#  (O)  ,M9               MM     ,M YA.   ,A9 8M   MM  `Mb    MM  
+#   6mmm9               .JMMmmmmMMM  `Ybmd9'  `Moo9^Yo. `Wbmd"MML.
+#====================================================================================================#\
+
+all_data_split_dict_file_output = Step_code + dataset_nme  + "_data_splt.p"
+all_data_split_dict = pickle.load(open(data_folder / all_data_split_dict_file_output, "rb"))
+
+X_tr_seqs  =  all_data_split_dict["X_tr_seqs"] 
+X_ts_seqs  =  all_data_split_dict["X_ts_seqs"] 
+X_va_seqs  =  all_data_split_dict["X_va_seqs"] 
+
+y_tr       = all_data_split_dict["y_tr"]       
+y_ts       = all_data_split_dict["y_ts"]       
+y_va       = all_data_split_dict["y_va"]    
+
+all_seqs = X_tr_seqs + X_ts_seqs + X_va_seqs
+all_y    = np.concatenate([y_tr, y_ts, y_va])
+
 
 #====================================================================================================#
-class ScaledDotProductAttention(nn.Module):
-    def __init__(self):
-        super().__init__()
+#                            .M"""bgd            mm      mm      db                                
+#                           ,MI    "Y            MM      MM                                        
+#   M******     pd*"*b.     `MMb.      .gP"Ya  mmMMmm  mmMMmm  `7MM  `7MMpMMMb.   .P"Ybmmm ,pP"Ybd 
+#  .M          (O)   j8       `YMMNq. ,M'   Yb   MM      MM      MM    MM    MM  :MI  I8   8I   `" 
+#  |bMMAg.         ,;j9     .     `MM 8M""""""   MM      MM      MM    MM    MM   WmmmP"   `YMMMa. 
+#       `Mb ,,  ,-='        Mb     dM YM.    ,   MM      MM      MM    MM    MM  8M        L.   I8 
+#        jM db Ammmmmmm     P"Ybmmd"   `Mbmmd'   `Mbmo   `Mbmo .JMML..JMML  JMML. YMMMMMb  M9mmmP' 
+#  (O)  ,M9                                                                      6'     dP         
+#   6mmm9                                                                        Ybmmmd'           
+#====================================================================================================#
 
-    def forward(self, Q, K, V, attn_mask):
-        scores = torch.matmul(Q, K.transpose(-1,-2))
-        scores.masked_fill_(attn_mask,-1e9)
-        attn = nn.Softmax(dim=-1)(scores)
-        context = torch.matmul(attn, V) # [batch_size, n_heads, len_q, d_v]
-        return context, attn
+# Step 5. Create NN model and Initiate
+print("\n\n\n>>> Initializing the model... ")
+#====================================================================================================#
+# Get the model (CNN)
+
+if log_value == True:
+    y_tr = np.log2(y_tr)
+    y_ts = np.log2(y_ts)
+    y_va = np.log2(y_va)
+
+train_seqs, train_vals = (X_tr_seqs, y_tr, )
+valid_seqs, valid_vals = (X_va_seqs, y_va, )
+test_seqs , test_vals  = (X_ts_seqs, y_ts, )
+
+
+# Featurizer sequences with kmers
+print("Featurizing sequences")
+seqs_featurizer  = KMERFeaturizer(ngram_min=2, ngram_max=3, unnormalized=True)
+train_seqs_feats = np.vstack(seqs_featurizer.featurize(train_seqs))
+valid_seqs_feats = np.vstack(seqs_featurizer.featurize(valid_seqs))
+test_seqs_feats  = np.vstack(seqs_featurizer.featurize(test_seqs ))
+
+knn_params = {"n": 3, "seqs_dist_weight": 5, "comp_dist_weight": 1}
+
 
 #====================================================================================================#
-class MultiHeadAttentionwithonekey(nn.Module):
-    def __init__(self,d_model,d_k,n_heads,d_v,out_dim):
-        super().__init__()
-        self.n_heads = n_heads
-        self.d_k = d_k
-        self.d_v = d_v
-        self.out_dim = out_dim
-        self.W_Q = nn.Linear(d_model, d_k * n_heads, bias=False)
-        self.W_K = nn.Linear(d_model, d_k * n_heads, bias=False)
-        self.W_V = nn.Linear(d_model, d_v * n_heads, bias=False)
-        self.fc_att = nn.Linear(n_heads * d_v, out_dim, bias=False)
+#    M******     pd""b.        MMP""MM""YMM              db              db                          #
+#   .M          (O)  `8b       P'   MM   `7                                                          #
+#   |bMMAg.          ,89            MM `7Mb,od8 ,6"Yb. `7MM `7MMpMMMb. `7MM `7MMpMMMb.  .P"Ybmmm     #
+#        `Mb ,,    ""Yb.            MM   MM' "'8)   MM   MM   MM    MM   MM   MM    MM :MI  I8       #
+#         jM db       88            MM   MM     ,pm9MM   MM   MM    MM   MM   MM    MM  WmmmP"       #
+#   (O)  ,M9    (O)  .M'            MM   MM    8M   MM   MM   MM    MM   MM   MM    MM 8M            #
+#    6mmm9       bmmmd'           .JMML.JMML.  `Moo9^Yo.JMML.JMML  JMML.JMML.JMML  JMML.YMMMMMb      #
+#                                                                                      6'     dP     #
+#                                                                                      Ybmmmd'       #
+#====================================================================================================#
 
-    def forward(self, input_Q, input_K, input_V, attn_mask):
-        Q = self.W_Q(input_Q).view(input_Q.size(0),-1, self.n_heads, self.d_k).transpose(1, 2)
-        K = self.W_K(input_K).view(input_Q.size(0),-1, self.n_heads, self.d_k).transpose(1, 2)
-        V = self.W_V(input_V).view(input_V.size(0),-1, self.n_heads, self.d_k).transpose(1, 2)
-        #print(Q.size(), K.size())
-        attn_mask = attn_mask.unsqueeze(1).repeat(1,self.n_heads,1,1)
-        context, attn = ScaledDotProductAttention()(Q, K, V, attn_mask)
-        context = context.transpose(1, 2).reshape(input_Q.size(0), -1, self.n_heads * self.d_v)
-        output = self.fc_att(context) # [batch_size, len_q, out_dim]
-        return output, attn
+
+
+knn_model = KNNModel(**knn_params)
+knn_model.fit(
+                train_seqs_feats ,
+                train_vals       ,
+                valid_seqs_feats ,
+                valid_vals       ,
+                )
+
+
+# Get Test Results
+inds = np.arange(len(test_seqs_feats))
+num_splits = min(100, len(inds))
+ars = np.array_split(inds, num_splits)
+ar_vec = []
+for ar in tqdm(ars):
+    test_preds = knn_model.predict(test_seqs_feats[ar], )
+    ar_vec.append(test_preds)
+test_preds = np.concatenate(ar_vec)
+
+
+print("Conducting evaluation")
+y_real = test_vals
+y_pred = test_preds
+if log_value == True:
+    y_real = np.log10(np.power(2, test_vals))
+    y_pred = np.log10(np.power(2, test_preds))
+
+
+# Get Validation Results
+inds = np.arange(len(valid_seqs_feats))
+num_splits = min(100, len(inds))
+ars = np.array_split(inds, num_splits)
+ar_vec = []
+for ar in tqdm(ars):
+    valid_preds = knn_model.predict(valid_seqs_feats[ar], )
+    ar_vec.append(valid_preds)
+valid_preds = np.concatenate(ar_vec)
+
+
+print("Conducting evaluation")
+y_real_va = valid_vals
+y_pred_va = valid_preds
+
+if log_value == True:
+    y_real_va = np.log10(np.power(2, valid_vals))
+    y_pred_va = np.log10(np.power(2, valid_preds))
+
+
+print("len(y_pred): ", len(y_pred))
+print("len(y_pred_va): ", len(y_pred_va))
 
 #====================================================================================================#
-class PoswiseFeedForwardNet(nn.Module):
-    def __init__(self, d_model, d_ff):
-        super().__init__()
-        self.fc = nn.Sequential(
-            nn.Linear(d_model, d_ff),
-            nn.ReLU(),
-            nn.Linear(d_ff, 1)
-            )
-        #--------------------------------------------------#
-        self.weights = nn.Parameter(torch.from_numpy(np.array([0.0,])), requires_grad = True)
-        self.fc_1    = nn.Linear(d_model, d_ff)
-        self.fc_2    = nn.Linear(d_ff, d_ff)
-        self.fc_3    = nn.Linear(d_ff, 1)
+#   M******         ,AM      `7MM"""YMM                 `7MM                    mm           
+#  .M              AVMM        MM    `7                   MM                    MM           
+#  |bMMAg.       ,W' MM        MM   d `7M'   `MF',6"Yb.   MM `7MM  `7MM  ,6"YbmmMMmm .gP"Ya  
+#       `Mb ,, ,W'   MM        MMmmMM   VA   ,V 8)   MM   MM   MM    MM 8)   MM MM  ,M'   Yb 
+#        jM db AmmmmmMMmm      MM   Y  , VA ,V   ,pm9MM   MM   MM    MM  ,pm9MM MM  8M"""""" 
+#  (O)  ,M9          MM        MM     ,M  VVV   8M   MM   MM   MM    MM 8M   MM MM  YM.    , 
+#   6mmm9            MM      .JMMmmmmMMM   W    `Moo9^Yo.JMML. `Mbod"YML`Moo9^Yo`Mbmo`Mbmmd' 
+#====================================================================================================#
 
-    def forward(self, inputs, input_emb):
-        '''
-        inputs: [batch_size, src_len, out_dim]
-        '''
-        output = torch.flatten(inputs, start_dim = 1)
-        #output += input_emb.mean(dim = 1)
-        output = output*self.weights + input_emb.mean(dim = 1) * (1-self.weights)
-        print(self.weights)
-        output = self.fc_1(output)
-        output = nn.functional.relu(output)
-        last_layer = self.fc_2(output)
-        output = nn.functional.relu(last_layer)
-        output = self.fc_3(output)
+epoch  = 0
+loss_train = 0
 
-        return output, last_layer
+slope, intercept, r_value_va, p_value, std_err = scipy.stats.linregress(y_pred_va, y_real_va)
+
+slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(y_pred, y_real)
+
+
+
+slope, intercept, r_value_va, p_value, std_err = scipy.stats.linregress(y_pred_va, y_real_va)
+
+slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(y_pred, y_real)
+
+va_MAE  = np.round(mean_absolute_error(y_pred_va, y_real_va), 4)
+va_MSE  = np.round(mean_squared_error (y_pred_va, y_real_va), 4)
+va_RMSE = np.round(math.sqrt(va_MSE), 4)
+va_R2   = np.round(r2_score(y_real_va, y_pred_va), 4)
+va_rho  = np.round(scipy.stats.spearmanr(y_pred_va, y_real_va)[0], 4)
+
+
+ts_MAE  = np.round(mean_absolute_error(y_pred, y_real), 4)
+ts_MSE  = np.round(mean_squared_error (y_pred, y_real), 4)
+ts_RMSE = np.round(math.sqrt(ts_MSE), 4) 
+ts_R2   = np.round(r2_score(y_real, y_pred), 4)
+ts_rho  = np.round(scipy.stats.spearmanr(y_pred, y_real)[0], 4)
+
+
+print("_" * 101)
+print("\nepoch: {} | time_elapsed: {:5.4f} | train_loss: {:5.4f} | vali_R_VALUE: {:5.4f} | test_R_VALUE: {:5.4f} ".format( 
+        str((epoch+1)+1000).replace("1","",1), 
+        np.round((time.time()-time.time()), 5),
+        np.round(loss_train, 5), 
+        np.round(r_value_va, 5), 
+        np.round(r_value, 5),
+        )
+        )
+
+
+print("           | va_MAE: {:4.3f} | va_MSE: {:4.3f} | va_RMSE: {:4.3f} | va_R2: {:4.3f} | va_rho: {:4.3f} ".format( 
+        va_MAE, 
+        va_MSE,
+        va_RMSE, 
+        va_R2, 
+        va_rho,
+        )
+        )
+
+
+print("           | ts_MAE: {:4.3f} | ts_MSE: {:4.3f} | ts_RMSE: {:4.3f} | ts_R2: {:4.3f} | ts_rho: {:4.3f} ".format( 
+        ts_MAE, 
+        ts_MSE,
+        ts_RMSE, 
+        ts_R2, 
+        ts_rho,
+        )
+        )
+
 
 #====================================================================================================#
-class EncoderLayer(nn.Module):
-    def __init__(self, d_model, d_k, n_heads, d_v, out_dim, d_ff): #out_dim = 1, n_head = 4, d_k = 256
-        super(EncoderLayer, self).__init__()
-        self.emb_self_attn = MultiHeadAttentionwithonekey(d_model, d_k, n_heads, d_v, out_dim)
-        self.pos_ffn = PoswiseFeedForwardNet(d_model, d_ff)
+#   M******     M******   `7MM"""Mq. `7MM              mm    
+#  .M          .M           MM   `MM.  MM              MM    
+#  |bMMAg.     |bMMAg.      MM   ,M9   MM   ,pW"Wq.  mmMMmm  
+#       `Mb ,,      `Mb     MMmmdM9    MM  6W'   `Wb   MM    
+#        jM db       jM     MM         MM  8M     M8   MM    
+#  (O)  ,M9    (O)  ,M9     MM         MM  YA.   ,A9   MM    
+#   6mmm9       6mmm9     .JMML.     .JMML. `Ybmd9'    `Mbmo 
+#====================================================================================================#
 
-    def forward(self, input_emb, emb_self_attn_mask, input_mask):
-        '''
-        input_emb: [batch_size, src_len, d_model]
-        emb_self_attn_mask: [batch_size, src_len, src_len]
-        '''
-        # output_emb: [batch_size, src_len, 1], attn: [batch_size, n_heads, src_len, src_len]
-        output_emb, attn = self.emb_self_attn(input_emb, input_emb, input_emb, emb_self_attn_mask) # input_emb to same Q,K,V
-        batch_mask = input_mask.unsqueeze(2)
-        output_emb = output_emb * batch_mask
-        pos_weights = nn.Softmax(dim = 1)(output_emb.masked_fill_(input_mask.unsqueeze(2).data.eq(0), -1e9)).permute(0,2,1) # [ batch_size, 1, src_len]
-        output_emb = torch.matmul(pos_weights, input_emb)
-        output_emb, last_layer = self.pos_ffn(output_emb, input_emb) # output_emb: [batch_size, d_model]
-        return output_emb, last_layer
+_, _, r_value, _ , _ = scipy.stats.linregress(y_pred, y_real)
+
+reg_scatter_distn_plot(y_pred,
+                        y_real,
+                        fig_size        =  (10,8),
+                        marker_size     =  35,
+                        fit_line_color  =  "brown",
+                        distn_color_1   =  "gold",
+                        distn_color_2   =  "lightpink",
+                        # title         =  "Predictions vs. Actual Values\n R = " + \
+                        #                         str(round(r_value,3)) + \
+                        #                         ", Epoch: " + str(epoch+1) ,
+                        title           =  "",
+                        plot_title      =  "R = " + str(round(r_value,3)) + \
+                                                    "\nEpoch: " + "N/A",
+                        x_label         =  "Actual Values",
+                        y_label         =  "Predictions",
+                        cmap            =  None,
+                        font_size       =  18,
+                        result_folder   =  results_sub_folder,
+                        file_name       =  "TS" + output_file_header,
+                        ) #For checking predictions fittings.
+
+
+
+
+_, _, r_value, _ , _ = scipy.stats.linregress(y_pred_va, y_real_va)
+
+reg_scatter_distn_plot(y_pred_va,
+                        y_real_va,
+                        fig_size        =  (10,8),
+                        marker_size     =  35,
+                        fit_line_color  =  "brown",
+                        distn_color_1   =  "gold",
+                        distn_color_2   =  "lightpink",
+                        # title         =  "Predictions vs. Actual Values\n R = " + \
+                        #                         str(round(r_value,3)) + \
+                        #                         ", Epoch: " + str(epoch+1) ,
+                        title           =  "",
+                        plot_title      =  "R = " + str(round(r_value,3)) + \
+                                                    "\nEpoch: " + "N/A",
+                        x_label         =  "Actual Values",
+                        y_label         =  "Predictions",
+                        cmap            =  None,
+                        font_size       =  18,
+                        result_folder   =  results_sub_folder,
+                        file_name       =  "VA" + output_file_header,
+                        ) #For checking predictions fittings.                            
 
 #====================================================================================================#
-# X05B
-class SQembSAtt_Model(nn.Module):
-    def __init__(self, d_model, d_k, n_heads, d_v, out_dim, d_ff):
-        super(SQembSAtt_Model, self).__init__()
-        self.layers = EncoderLayer(d_model, d_k, n_heads, d_v, out_dim, d_ff)
-
-    def get_attn_pad_mask(self, seq_mask):
-        batch_size, len_q = seq_mask.size()
-        _, len_k = seq_mask.size()
-        # eq(zero) is PAD token
-        pad_attn_mask = seq_mask.data.eq(0).unsqueeze(1)  # [batch_size, 1, len_k], True is masked
-        return pad_attn_mask.expand(batch_size, len_q, len_k)        
-
-    def forward(self, input_emb, input_mask):
-        '''
-        input_emb  : [batch_size, src_len, embedding_dim]
-        input_mask : [batch_size, src_len]
-        '''
-        emb_self_attn_mask = self.get_attn_pad_mask(input_mask) # [batch_size, src_len, src_len]
-        # output_emb: [batch_size, src_len, out_dim], emb_self_attn: [batch_size, n_heads, src_len, src_len]
-        output_emb, last_layer = self.layers(input_emb, emb_self_attn_mask, input_mask)
-        return output_emb, last_layer
-
-
-
-
-###################################################################################################################
-#                                `7MMF'        .g8""8q.         db      `7MM"""Yb.                                #
-#                                  MM        .dP'    `YM.      ;MM:       MM    `Yb.                              #
-#                                  MM        dM'      `MM     ,V^MM.      MM     `Mb                              #
-#                                  MM        MM        MM    ,M  `MM      MM      MM                              #
-#                                  MM      , MM.      ,MP    AbmmmqMA     MM     ,MP                              #
-#                                  MM     ,M `Mb.    ,dP'   A'     VML    MM    ,dP'                              #
-#                                .JMMmmmmMMM   `"bmmd"'   .AMA.   .AMMA..JMMmmmdP'                                #
-###################################################################################################################
-
-'''
-# Average across sequence dimension. (Apparently a bad idea.)
-model = SQembAvgD_Model( in_dim  = seqs_max_len , 
-                                   hid_1   = last_hid     , 
-                                   hid_2   = last_hid     ,
-                                   dropout = dropout      ,
-                                   )
-                                   '''
-
-# X05B
-
-model = SQembSAtt_Model(d_model    = NN_input_dim,
-                        d_k        = d_k,
-                        n_heads    = n_heads,
-                        d_v        = d_v,
-                        out_dim    = 1,
-                        d_ff       = last_hid
-                        )
-                        
-
-
-
-model.double()
-model.cuda()
-#--------------------------------------------------#
-print("#"*50)
-print(model)
-#model.float()
-#print( summary( model,[(seqs_max_len, NN_input_dim),] )  )
-#model.double()
-print("#"*50)
-#--------------------------------------------------#
-#optimizer = torch.optim.SGD(model.parameters(),lr=learning_rate)
-#optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
-try:
-    optimizer = torch.optim.Adam([
-                {'params': model.layers.pos_ffn.weights, "lr": 0.01 , "weight_decay": 0.9, },
-                {'params': model.layers.emb_self_attn.W_Q.weight    , },
-                {'params': model.layers.emb_self_attn.W_K.weight    , },
-                {'params': model.layers.emb_self_attn.W_V.weight    , },
-                {'params': model.layers.emb_self_attn.fc_att.weight , },
-                {'params': model.layers.pos_ffn.fc[0].weight        , },
-                {'params': model.layers.pos_ffn.fc[0].bias          , },
-                {'params': model.layers.pos_ffn.fc[2].weight        , },
-                {'params': model.layers.pos_ffn.fc[2].bias          , },
-                {'params': model.layers.pos_ffn.fc_1.weight         , },
-                {'params': model.layers.pos_ffn.fc_1.bias           , },
-                {'params': model.layers.pos_ffn.fc_2.weight         , },
-                {'params': model.layers.pos_ffn.fc_2.bias           , },
-                {'params': model.layers.pos_ffn.fc_3.weight         , },
-                {'params': model.layers.pos_ffn.fc_3.bias           , },
-            ], lr = learning_rate)
-except:
-    optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
-
-criterion = nn.MSELoss()
-
-
-###################################################################################################################
-#                        MMP""MM""YMM `7MM"""Mq.        db      `7MMF'`7MN.   `7MF'                               #
-#                        P'   MM   `7   MM   `MM.      ;MM:       MM    MMN.    M                                 #
-#                             MM        MM   ,M9      ,V^MM.      MM    M YMb   M                                 #
-#                             MM        MMmmdM9      ,M  `MM      MM    M  `MN. M                                 #
-#                             MM        MM  YM.      AbmmmqMA     MM    M   `MM.M                                 #
-#                             MM        MM   `Mb.   A'     VML    MM    M     YMM                                 #
-#                           .JMML.    .JMML. .JMM..AMA.   .AMMA..JMML..JML.    YM                                 #
-###################################################################################################################
-# Step 6. Now, train the model
-print("\n\n\n>>>  Training... ")
-print("="*80)
-
-max_r = []
-
-input_var_names_list =  ["embedding" , "mask", ]
-
-for epoch in range(epoch_num): 
-    begin_time = time.time()
-    #====================================================================================================#
-    # Train
-    model.train()
-    count_x=0
-    for one_seq_ppt_group in train_loader:
-        len_train_loader=len(train_loader)
-        count_x+=1
-
-        if count_x == 20 :
-            print(" " * 12, end = " ") 
-        if ((count_x) % 160) == 0:
-            print( str(count_x) + "/" + str(len_train_loader) + "->" + "\n" + " " * 12, end=" ")
-        elif ((count_x) % 20) == 0:
-            print( str(count_x) + "/" + str(len_train_loader) + "->", end=" ")
-
-        #--------------------------------------------------#
-        seq_rep, seq_mask, target = one_seq_ppt_group["embedding"], one_seq_ppt_group["mask"], one_seq_ppt_group["target"]
-        seq_rep, seq_mask, target = seq_rep.double().cuda(), seq_mask.double().cuda(), target.double().cuda()
-        output, _ = model(seq_rep, seq_mask)
-        loss = criterion(output, target.view(-1,1))
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-    #====================================================================================================#
-    model.eval()
-    y_pred_valid = []
-    y_real_valid = []
-    #--------------------------------------------------#
-    # Validation.
-    for one_seq_ppt_group in valid_loader:
-        seq_rep, seq_mask, target = one_seq_ppt_group["embedding"], one_seq_ppt_group["mask"], one_seq_ppt_group["target"]
-        seq_rep, seq_mask = seq_rep.double().cuda(), seq_mask.double().cuda()
-        output, _ = model(seq_rep, seq_mask)
-        output = output.cpu().detach().numpy().reshape(-1)
-        target = target.numpy()
-        y_pred_valid.append(output)
-        y_real_valid.append(target)
-    y_pred_valid = np.concatenate(y_pred_valid)
-    y_real_valid = np.concatenate(y_real_valid)
-    slope, intercept, r_value_va, p_value, std_err = scipy.stats.linregress(y_pred_valid, y_real_valid)
-
-    #====================================================================================================#
-    y_pred = []
-    y_real = []
-    #--------------------------------------------------#
-
-    for one_seq_ppt_group in test_loader:
-        seq_rep, seq_mask, target = one_seq_ppt_group["embedding"], one_seq_ppt_group["mask"], one_seq_ppt_group["target"]
-        seq_rep, seq_mask = seq_rep.double().cuda(), seq_mask.double().cuda()
-        output, _ = model(seq_rep, seq_mask)
-        output = output.cpu().detach().numpy().reshape(-1)
-        target = target.numpy()
-        y_pred.append(output)
-        y_real.append(target)
-    y_pred = np.concatenate(y_pred)
-    y_real = np.concatenate(y_real)
-    #--------------------------------------------------#
-    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(y_pred, y_real)
-
-
-    #====================================================================================================#
-    #                  `7MM"""Mq.  `7MM"""YMM  `7MM"""Mq.   .g8""8q.   `7MM"""Mq.  MMP""MM""YMM 
-    #        `MM.        MM   `MM.   MM    `7    MM   `MM..dP'    `YM.   MM   `MM. P'   MM   `7 
-    #          `Mb.      MM   ,M9    MM   d      MM   ,M9 dM'      `MM   MM   ,M9       MM      
-    #   MMMMMMMMMMMMD    MMmmdM9     MMmmMM      MMmmdM9  MM        MM   MMmmdM9        MM      
-    #           ,M'      MM  YM.     MM   Y  ,   MM       MM.      ,MP   MM  YM.        MM      
-    #         .M'        MM   `Mb.   MM     ,M   MM       `Mb.    ,dP'   MM   `Mb.      MM      
-    #                  .JMML. .JMM..JMMmmmmMMM .JMML.       `"bmmd"'   .JMML. .JMM.   .JMML.    
-    #====================================================================================================#
-    # Report.
-    loss_copy = copy.copy(loss)
-    print("\n" + "_" * 101, end = " ")
-    print("\nepoch: {} | time_elapsed: {:5.4f} | train_loss: {:5.4f} | vali_R_VALUE: {:5.4f} | test_R_VALUE: {:5.4f} ".format( 
-            str((epoch+1)+1000).replace("1","",1), 
-
-            np.round((time.time()-begin_time), 5),
-            np.round(loss_copy.cpu().detach().numpy(), 5), 
-            np.round(r_value_va, 5), 
-            np.round(r_value, 5),
-            )
-            )
-
-    r_value, r_value_va = r_value, r_value_va 
-
-    va_MAE  = np.round(mean_absolute_error(y_pred_valid, y_real_valid), 4)
-    va_MSE  = np.round(mean_squared_error (y_pred_valid, y_real_valid), 4)
-    va_RMSE = np.round(math.sqrt(va_MSE), 4)
-    va_R2   = np.round(r2_score(y_real_valid, y_pred_valid), 4)
-    va_rho  = np.round(scipy.stats.spearmanr(y_pred_valid, y_real_valid)[0], 4)
+if log_value == False and screen_bool==True:
+    y_real = np.delete(y_real, np.where(y_pred == 0.0))
+    y_pred = np.delete(y_pred, np.where(y_pred == 0.0))
+    y_real = np.log10(y_real)
+    y_pred = np.log10(y_pred)
     
-    
-    ts_MAE  = np.round(mean_absolute_error(y_pred, y_real), 4)
-    ts_MSE  = np.round(mean_squared_error (y_pred, y_real), 4)
-    ts_RMSE = np.round(math.sqrt(ts_MSE), 4) 
-    ts_R2   = np.round(r2_score(y_real, y_pred), 4)
-    ts_rho  = np.round(scipy.stats.spearmanr(y_pred, y_real)[0], 4)
-
-    print("           | va_MAE: {:4.3f} | va_MSE: {:4.3f} | va_RMSE: {:4.3f} | va_R2: {:4.3f} | va_rho: {:4.3f} ".format( 
-            va_MAE, 
-            va_MSE,
-            va_RMSE, 
-            va_R2, 
-            va_rho,
-            )
-            )
-
-    print("           | ts_MAE: {:4.3f} | ts_MSE: {:4.3f} | ts_RMSE: {:4.3f} | ts_R2: {:4.3f} | ts_rho: {:4.3f} ".format( 
-            ts_MAE, 
-            ts_MSE,
-            ts_RMSE, 
-            ts_R2, 
-            ts_rho,
-            )
-            )
-
-    y_pred_all = np.concatenate([y_pred, y_pred_valid], axis = None)
-    y_real_all = np.concatenate([y_real, y_real_valid], axis = None)
-
-    all_rval = np.round(scipy.stats.pearsonr(y_pred_all, y_real_all), 5)
-    all_MAE  = np.round(mean_absolute_error(y_pred_all, y_real_all), 4)
-    all_MSE  = np.round(mean_squared_error (y_pred_all, y_real_all), 4)
-    all_RMSE = np.round(math.sqrt(ts_MSE), 4) 
-    all_R2   = np.round(r2_score(y_real_all, y_pred_all), 4)
-    all_rho  = np.round(scipy.stats.spearmanr(y_pred_all, y_real_all)[0], 4)
-
-    print("           | tv_MAE: {:4.3f} | tv_MSE: {:4.3f} | tv_RMSE: {:4.3f} | tv_R2: {:4.3f} | tv_rho: {:4.3f} ".format( 
-            all_MAE ,
-            all_MSE ,
-            all_RMSE,
-            all_R2  ,
-            all_rho ,
-            )
-            )
-    print("           | tv_R_VALUE:", all_rval)
-
-    print("_" * 101)
+    reg_scatter_distn_plot(y_pred,
+                            y_real,
+                            fig_size        =  (10,8),
+                            marker_size     =  35,
+                            fit_line_color  =  "brown",
+                            distn_color_1   =  "gold",
+                            distn_color_2   =  "lightpink",
+                            # title         =  "Predictions vs. Actual Values\n R = " + \
+                            #                         str(round(r_value,3)) + \
+                            #                         ", Epoch: " + str(epoch+1) ,
+                            title           =  "",
+                            plot_title      =  "R = " + str(round(r_value,3)) + \
+                                                    "\nEpoch: " + "N/A",
+                            x_label         =  "Actual Values",
+                            y_label         =  "Predictions",
+                            cmap            =  None,
+                            font_size       =  18,
+                            result_folder   =  results_sub_folder,
+                            file_name       =  output_file_header + "_logplot"
+                            ) #For checking predictions fittings.
+#########################################################################################################
+#########################################################################################################
 
 
-    #====================================================================================================#
-    #                   `7MM"""Mq. `7MMF'        .g8""8q.   MMP""MM""YMM 
-    #        `MM.         MM   `MM.  MM        .dP'    `YM. P'   MM   `7 
-    #          `Mb.       MM   ,M9   MM        dM'      `MM      MM      
-    #   MMMMMMMMMMMMD     MMmmdM9    MM        MM        MM      MM      
-    #           ,M'       MM         MM      , MM.      ,MP      MM      
-    #         .M'         MM         MM     ,M `Mb.    ,dP'      MM      
-    #                   .JMML.     .JMMmmmmMMM   `"bmmd"'      .JMML.    
-    #====================================================================================================#
-    # Plot.
-    if ((epoch+1) % 1) == 0:
-        if log_value == False:
-            y_pred = y_scalar.inverse_transform(y_pred)
-            y_real = y_scalar.inverse_transform(y_real)
-
-        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred, y_real)
-
-        reg_scatter_distn_plot(y_pred,
-                                y_real,
-                                fig_size        =  (10,8),
-                                marker_size     =  35,
-                                fit_line_color  =  "brown",
-                                distn_color_1   =  "gold",
-                                distn_color_2   =  "lightpink",
-                                # title         =  "Predictions vs. Actual Values\n R = " + \
-                                #                         str(round(r_value,3)) + \
-                                #                         ", Epoch: " + str(epoch+1) ,
-                                title           =  "",
-                                plot_title      =  "R = " + str(round(r_value,3)) + \
-                                                          "\nEpoch: " + str(epoch+1) ,
-                                x_label         =  "Actual Values",
-                                y_label         =  "Predictions",
-                                cmap            =  None,
-                                cbaxes          =  (0.425, 0.055, 0.525, 0.015),
-                                font_size       =  18,
-                                result_folder   =  results_sub_folder,
-                                file_name       =  output_file_header + "_TS_" + "epoch_" + str(epoch+1),
-                                ) #For checking predictions fittings.
-
-
-        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred_valid, y_real_valid)                       
-        reg_scatter_distn_plot(y_pred_valid,
-                                y_real_valid,
-                                fig_size        =  (10,8),
-                                marker_size     =  35,
-                                fit_line_color  =  "brown",
-                                distn_color_1   =  "gold",
-                                distn_color_2   =  "lightpink",
-                                # title         =  "Predictions vs. Actual Values\n R = " + \
-                                #                         str(round(r_value,3)) + \
-                                #                         ", Epoch: " + str(epoch+1) ,
-                                title           =  "",
-                                plot_title      =  "R = " + str(round(r_value,3)) + \
-                                                          "\nEpoch: " + str(epoch+1) ,
-                                x_label         =  "Actual Values",
-                                y_label         =  "Predictions",
-                                cmap            =  None,
-                                cbaxes          =  (0.425, 0.055, 0.525, 0.015),
-                                font_size       =  18,
-                                result_folder   =  results_sub_folder,
-                                file_name       =  output_file_header + "_VA_" + "epoch_" + str(epoch+1),
-                                ) #For checking predictions fittings.
-
-
-    #====================================================================================================#
-        if log_value == False and screen_bool==True:
-            y_real = np.delete(y_real, np.where(y_pred == 0.0))
-            y_pred = np.delete(y_pred, np.where(y_pred == 0.0))
-            y_real = np.log10(y_real)
-            y_pred = np.log10(y_pred)
-            
-            reg_scatter_distn_plot(y_pred,
-                                y_real,
-                                fig_size       = (10,8),
-                                marker_size    = 20,
-                                fit_line_color = "brown",
-                                distn_color_1  = "gold",
-                                distn_color_2  = "lightpink",
-                                # title         =  "Predictions vs. Actual Values\n R = " + \
-                                #                         str(round(r_value,3)) + \
-                                #                         ", Epoch: " + str(epoch+1) ,
-                                title           =  "",
-                                plot_title      =  "R = " + str(round(r_value,3)) + \
-                                                          "\nEpoch: " + str(epoch+1) ,
-                                x_label        = "Actual Values",
-                                y_label        = "Predictions",
-                                cmap           = None,
-                                font_size      = 18,
-                                result_folder  = results_sub_folder,
-                                file_name      = output_file_header + "_logplot" + "epoch_" + str(epoch+1),
-                                ) #For checking predictions fittings.
 
 ###################################################################################################################
 ###################################################################################################################

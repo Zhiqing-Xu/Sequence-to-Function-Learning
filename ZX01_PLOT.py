@@ -53,6 +53,7 @@ import seaborn as sns
 from scipy import stats
 from scipy.stats import linregress
 #--------------------------------------------------#
+import warnings
 import matplotlib
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -97,7 +98,7 @@ def categorical_heatmap_ZX(data_book,
     # data_book = [x_idx, y_idx, z_val,]
     random.shuffle(data_book)
     #--------------------------------------------------#
-    font = {'family' : "Sans Regular"}
+    font = {'family' : "DejaVu Sans"}
     plt.rc('font', **font)
     #--------------------------------------------------#
     df_data = pd.DataFrame(data_book, columns =['x_idx', 'y_idx', 'value'])
@@ -175,6 +176,8 @@ def reg_scatter_distn_plot(y_pred,
                            result_folder  = Path("./"),
                            file_name      = Path("file_name"),
                            ): #For checking predictions fittings.
+
+    warnings.filterwarnings('ignore')                     
     #--------------------------------------------------# 
     # Get r_value
     # _, _, r_value, _ , _ = scipy.stats.linregress(y_pred, y_real)
@@ -186,12 +189,12 @@ def reg_scatter_distn_plot(y_pred,
     pred_vs_real_df.head()
     #--------------------------------------------------#
     # Main plot settings
-    font = {'family' : "Sans Regular"}
+    font = {'family' : "DejaVu Sans"}
     plt.rc('font', **font)
-    mpl.rc('font', family='serif', serif="Sans Regular")
+    mpl.rc('font', family='serif', serif="DejaVu Sans")
 
     sns.set_theme(style="darkgrid")
-    sns.set_style({'font.family': 'Sans Regular'})
+    sns.set_style({'font.family': 'DejaVu Sans'})
 
     #--------------------------------------------------#
     # 
