@@ -6,14 +6,14 @@ The model was trained on 1000 PafA single amino acid mutants (obtained from "Rev
 
 ## Dataset Contains
 
-| Kinetic Params       |  Self-Attention     |     kmer-KNN     |
-|    :---:             |     :---:           |     :---:        |
-| kcat_cMUP            |     R =  ~ 0.64     |     R =  ~ 0.35  |
-| KM_cMUP              |     R =  ?          |     R =  ?       |
-| kcatOverKM_cMUP      |     R =  ?          |     R =  ?       |
-| kcatOverKM_MeP       |     R =  ?          |     R =  ?       |
-| kcatOverKM_MecMUP    |     R =  ?          |     R =  ?       |
-| Ki_Pi                |     R =  ?          |     R =  ?       |
+| Kinetic Params       |  Self-Attention     |     kmer-KNN                       ||
+|    :---:             |     :---:           |     :---:        |     :---:        |
+| kcat_cMUP            |     R =  ~ 0.64     |     R =  ~ 0.35  |     R =  ~ 0.35  |
+| KM_cMUP              |     R =  0.499      |     R =  ?       |     R =  ?       |
+| kcatOverKM_cMUP      |     R =  ?          |     R =  ?       |     R =  ?       |
+| kcatOverKM_MeP       |     R =  ?          |     R =  ?       |     R =  ?       |
+| kcatOverKM_MecMUP    |     R =  ?          |     R =  ?       |     R =  ?       |
+| Ki_Pi                |     R =  ?          |     R =  ?       |     R =  ?       |
 
 
 

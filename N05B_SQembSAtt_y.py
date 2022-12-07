@@ -93,7 +93,7 @@ from ZX01_PLOT import *
 from ZX02_nn_utils import StandardScaler, normalize_targets
 
 
-seed=42
+seed = 0
 random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
@@ -162,7 +162,7 @@ prpty_list = [
              ][dataset_nme_list.index(dataset_nme)]
 
 
-prpty_select = prpty_list[0]
+prpty_select = prpty_list[1]
 
 #====================================================================================================#
 # Prediction NN settings
