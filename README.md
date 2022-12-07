@@ -18,14 +18,14 @@ The model was trained on 1000 PafA single amino acid mutants (obtained from "Rev
 
 
 ## Prediction Pipeline
-<p align="center">
+<p align="left">
   <img width="900"  src="https://user-images.githubusercontent.com/47986787/205684697-7675f4fc-f821-4218-aede-8979aaac8789.png">
 </p>
 
 
 ## Prediction Performance
-<p align="center">
-  <img width="600"  src="https://user-images.githubusercontent.com/47986787/206294274-6d0d8726-3178-4010-9702-df343fbfa40d.png">
+<p align="left">
+  <img width="900"  src="https://user-images.githubusercontent.com/47986787/206294274-6d0d8726-3178-4010-9702-df343fbfa40d.png">
 </p>
 
 
