@@ -25,8 +25,10 @@ The model was trained on 1000 PafA single amino acid mutants (obtained from "Rev
 
 ## Prediction Performance
 <p align="center">
-  <img width="600"  src="https://user-images.githubusercontent.com/47986787/205684314-7029ee8f-f1cb-4375-9bd2-b881750b015c.png">
+  <img width="600"  src="https://user-images.githubusercontent.com/47986787/206294274-6d0d8726-3178-4010-9702-df343fbfa40d.png">
 </p>
+
+
 
 ### Make a $y$ vs. $\hat{y}$ plot.
 ```
