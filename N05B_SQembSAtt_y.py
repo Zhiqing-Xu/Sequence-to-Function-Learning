@@ -162,7 +162,7 @@ prpty_list = [
              ][dataset_nme_list.index(dataset_nme)]
 
 
-prpty_select = prpty_list[1]
+prpty_select = prpty_list[5]
 
 #====================================================================================================#
 # Prediction NN settings
