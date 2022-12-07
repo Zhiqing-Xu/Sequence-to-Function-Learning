@@ -6,14 +6,14 @@ The model was trained on 1000 PafA single amino acid mutants (obtained from "Rev
 
 ## Dataset Contains
 
-| Kinetic Params       |  Self-Attention     |     kmer-KNN                       ||
-|    :---:             |     :---:           |     :---:        |     :---:        |
-| kcat_cMUP            |     R =  ~ 0.64     |     R =  ~ 0.35  |     R =  ~ 0.35  |
-| KM_cMUP              |     R =  0.499      |     R =  ?       |     R =  ?       |
-| kcatOverKM_cMUP      |     R =  ?          |     R =  ?       |     R =  ?       |
-| kcatOverKM_MeP       |     R =  ?          |     R =  ?       |     R =  ?       |
-| kcatOverKM_MecMUP    |     R =  ?          |     R =  ?       |     R =  ?       |
-| Ki_Pi                |     R =  ?          |     R =  ?       |     R =  ?       |
+| Kinetic Params       |  Self-Attention     |                     |     kmer-KNN     |                  |
+|    :---:             |     :---:           |     :---:           |     :---:        |     :---:        |
+| kcat_cMUP            |     R =  0.64       |   rho =  0.60       |     R =  ~ 0.35  |    rho =  ?      |
+| KM_cMUP              |     R =  0.499      |   rho =  0.62       |     R =  ?       |    rho =  ?      |
+| kcatOverKM_cMUP      |     R =  ?          |   rho =  ?          |     R =  ?       |    rho =  ?      |
+| kcatOverKM_MeP       |     R =  ?          |   rho =  ?          |     R =  ?       |    rho =  ?      |
+| kcatOverKM_MecMUP    |     R =  ?          |   rho =  ?          |     R =  ?       |    rho =  ?      |
+| Ki_Pi                |     R =  ?          |   rho =  ?          |     R =  ?       |    rho =  ?      |
 
 
 
@@ -24,10 +24,18 @@ The model was trained on 1000 PafA single amino acid mutants (obtained from "Rev
 
 
 ## Prediction Performance
+
+### kcat
+
 <p align="left">
   <img width="900"  src="https://user-images.githubusercontent.com/47986787/206294274-6d0d8726-3178-4010-9702-df343fbfa40d.png">
 </p>
 
+### KM
+
+<p align="left">
+  <img width="900"  src="https://user-images.githubusercontent.com/47986787/206298780-47417d07-9f0e-45e9-a421-f21638a900a8.png">
+</p>
 
 
 ### Make a $y$ vs. $\hat{y}$ plot.
