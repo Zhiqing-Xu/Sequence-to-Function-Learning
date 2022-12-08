@@ -183,7 +183,7 @@ learning_rate  =  [0.01        , # 0
                    0.000005    , # 10
                    0.000002    , # 11
                    0.000001    , # 12
-                   ][5]          # 
+                   ][8]          # 
 
 #====================================================================================================#
 # Hyperparameters.
@@ -202,7 +202,7 @@ for one_hyperpara in ["d_k", "n_heads", "out_dim", "d_v", "last_hid", "sub_vab",
 #====================================================================================================#
 # If log_value is True, screen_bool will be changed.
 screen_bool = bool(0) # Currently screening y values is NOT supported.
-log_value   = bool(0) ##### !!!!! If value is True, screen_bool will be changed
+log_value   = bool(1) ##### !!!!! If value is True, screen_bool will be changed
 if log_value == True:
     screen_bool = True
 #====================================================================================================#

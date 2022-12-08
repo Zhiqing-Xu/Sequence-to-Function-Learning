@@ -120,14 +120,17 @@ dataset_nme          = dataset_nme_list[1]
 
 data_folder = Path("N_DataProcessing/")
 
-embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"   ,      # 0
-                        "N03_" + dataset_nme + "_embedding_ESM_2_3B.p" ,      # 1
-                        "N03_" + dataset_nme + "_embedding_BERT.p"     ,      # 2
-                        "N03_" + dataset_nme + "_embedding_TAPE.p"     ,      # 3
-                        "N03_" + dataset_nme + "_embedding_ALBERT.p"   ,      # 4
-                        "N03_" + dataset_nme + "_embedding_T5.p"       ,      # 5
-                        "N03_" + dataset_nme + "_embedding_TAPE_FT.p"  ,      # 6
-                        "N03_" + dataset_nme + "_embedding_Xlnet.p"    ,      # 7
+embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"    ,      # 0
+                        "N03_" + dataset_nme + "_embedding_ESM_1V.p"    ,      # 1
+                        "N03_" + dataset_nme + "_embedding_ESM_2_650.p" ,      # 2
+                        "N03_" + dataset_nme + "_embedding_ESM_2_3B.p"  ,      # 3
+                        "N03_" + dataset_nme + "_embedding_BERT.p"      ,      # 4
+
+                        "N03_" + dataset_nme + "_embedding_TAPE.p"      ,      # 5
+                        "N03_" + dataset_nme + "_embedding_ALBERT.p"    ,      # 6
+                        "N03_" + dataset_nme + "_embedding_T5.p"        ,      # 7
+                        "N03_" + dataset_nme + "_embedding_TAPE_FT.p"   ,      # 8
+                        "N03_" + dataset_nme + "_embedding_Xlnet.p"     ,      # 9
                         ]
 embedding_file      = embedding_file_list[0]
 
@@ -158,7 +161,7 @@ prpty_list = [
              ][dataset_nme_list.index(dataset_nme)]
 
 
-prpty_select = prpty_list[0]
+prpty_select = prpty_list[5]
 
 #====================================================================================================#
 # Prediction NN settings
@@ -208,7 +211,7 @@ for one_hyperpara in ["hid_dim", "kernal_1", "out_dim", "kernal_2", "last_hid", 
 #====================================================================================================#
 # If log_value is True, screen_bool will be changed.
 screen_bool = bool(0) # Currently screening y values is NOT supported.
-log_value   = bool(0) ##### !!!!! If value is True, screen_bool will be changed
+log_value   = bool(1) ##### !!!!! If value is True, screen_bool will be changed
 if log_value == True:
     screen_bool = True
 #====================================================================================================#
