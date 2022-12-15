@@ -176,9 +176,8 @@ def reg_scatter_distn_plot(y_pred,
                            result_folder  = Path("./"),
                            file_name      = Path("file_name"),
                            ): #For checking predictions fittings.
-
-    warnings.filterwarnings('ignore')                     
     #--------------------------------------------------# 
+    warnings.filterwarnings( "ignore", module = "matplotlib\..*" )
     # Get r_value
     # _, _, r_value, _ , _ = scipy.stats.linregress(y_pred, y_real)
     # Get a DataFrame
@@ -269,7 +268,7 @@ def reg_scatter_distn_plot(y_pred,
     #g.fig.subplots_adjust(top = 0.95)
 
     g.ax_joint.text(x_y_range[1] - 1.18 * y_interval , 
-                    x_y_range[1] - 0.12 * y_interval ,
+                    x_y_range[1] - 0.18 * y_interval ,
                     plot_title                      , 
                     fontsize = font_size - 1        ,
                     )
@@ -300,6 +299,12 @@ y_pred = [0,1,3,4,5,6,7,8,9,9]
 y_real = [0,1,3,4,5,6,7,8,9,8.9]
 
 
+
+r_value = 0.9
+ts_rho  = 0.9
+epoch   = 100
+
+'''
 reg_scatter_distn_plot(y_pred,
                        y_real,
                        fig_size       = (10,8),
@@ -307,8 +312,13 @@ reg_scatter_distn_plot(y_pred,
                        fit_line_color = "pink",
                        distn_color_1  = "gold",
                        distn_color_2  = "cyan",
-                       title          = "Predictions VS. Acutual Values",
-                       plot_title     = "R = 0.999 \nEpoch: 100",
+                        # title         =  "Predictions vs. Actual Values\n R = " + \
+                        #                         str(round(r_value,3)) + \
+                        #                         ", Epoch: " + str(epoch+1) ,
+                        title           =  "",
+                        plot_title      =  "R = " + str(round(r_value,3)) + \
+                                            "\n" + r'$\rho$' + " = " + str(round(ts_rho,3)) + \
+                                                "\nEpoch: " + str(epoch+1) ,
                        x_label        = "Actual Values",
                        y_label        = "Predictions",
                        cmap           = None,
@@ -316,7 +326,7 @@ reg_scatter_distn_plot(y_pred,
                        result_folder  = Path("./"),
                        file_name      = Path("file_name"),
                        )
-
+'''
 
 
 
@@ -384,6 +394,11 @@ reg_scatter_distn_plot(y_pred,
 #       M              M              M              M              M               M              M              M              M              M      #
 #       M              M              M              M              M               M              M              M              M              M      #
 #       M              M              M              M              M               M              M              M              M              M      #
+
+
+
+
+
 
 
 

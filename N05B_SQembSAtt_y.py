@@ -93,7 +93,7 @@ from ZX01_PLOT import *
 from ZX02_nn_utils import StandardScaler, normalize_targets
 
 
-seed = 0
+seed = 42
 random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
@@ -162,7 +162,7 @@ prpty_list = [
              ][dataset_nme_list.index(dataset_nme)]
 
 
-prpty_select = prpty_list[5]
+prpty_select = prpty_list[2]
 
 #====================================================================================================#
 # Prediction NN settings
@@ -183,15 +183,15 @@ learning_rate  =  [0.01        , # 0
                    0.000005    , # 10
                    0.000002    , # 11
                    0.000001    , # 12
-                   ][8]          # 
+                   ][5]          # 
 
 #====================================================================================================#
 # Hyperparameters.
-d_k       =  256    # 256
+d_k       =  32     # 256
 n_heads   =  1      # 1  
 out_dim   =  1     
-d_v       =  256    # 
-last_hid  =  1024   # d_ff
+d_v       =  32     # 
+last_hid  =  1024    # d_ff
 dropout   =  0.0    # 0.1, 0.6
 sub_vab   =  50
 #====================================================================================================#
@@ -202,7 +202,7 @@ for one_hyperpara in ["d_k", "n_heads", "out_dim", "d_v", "last_hid", "sub_vab",
 #====================================================================================================#
 # If log_value is True, screen_bool will be changed.
 screen_bool = bool(0) # Currently screening y values is NOT supported.
-log_value   = bool(1) ##### !!!!! If value is True, screen_bool will be changed
+log_value   = bool(0) ##### !!!!! If value is True, screen_bool will be changed
 if log_value == True:
     screen_bool = True
 #====================================================================================================#
@@ -612,7 +612,7 @@ class PoswiseFeedForwardNet(nn.Module):
         output = torch.flatten(inputs, start_dim = 1)
         #output += input_emb.mean(dim = 1)
         output = output*self.weights + input_emb.mean(dim = 1) * (1-self.weights)
-        print(self.weights)
+        #print(self.weights)
         output = self.fc_1(output)
         output = nn.functional.relu(output)
         last_layer = self.fc_2(output)
@@ -711,29 +711,31 @@ print(model)
 #model.double()
 print("#"*50)
 #--------------------------------------------------#
-#optimizer = torch.optim.SGD(model.parameters(),lr=learning_rate)
-#optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
-try:
-    optimizer = torch.optim.Adam([
-                {'params': model.layers.pos_ffn.weights, "lr": 0.01 , "weight_decay": 0.9, },
-                {'params': model.layers.emb_self_attn.W_Q.weight    , },
-                {'params': model.layers.emb_self_attn.W_K.weight    , },
-                {'params': model.layers.emb_self_attn.W_V.weight    , },
-                {'params': model.layers.emb_self_attn.fc_att.weight , },
-                {'params': model.layers.pos_ffn.fc[0].weight        , },
-                {'params': model.layers.pos_ffn.fc[0].bias          , },
-                {'params': model.layers.pos_ffn.fc[2].weight        , },
-                {'params': model.layers.pos_ffn.fc[2].bias          , },
-                {'params': model.layers.pos_ffn.fc_1.weight         , },
-                {'params': model.layers.pos_ffn.fc_1.bias           , },
-                {'params': model.layers.pos_ffn.fc_2.weight         , },
-                {'params': model.layers.pos_ffn.fc_2.bias           , },
-                {'params': model.layers.pos_ffn.fc_3.weight         , },
-                {'params': model.layers.pos_ffn.fc_3.bias           , },
-            ], lr = learning_rate)
-except:
-    optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
+#optimizer = torch.optim.SGD(model.parameters(),lr = learning_rate)
+optimizer = torch.optim.Adam(model.parameters(),lr = learning_rate)
 
+# try:
+#     optimizer = torch.optim.Adam([
+#                 {'params': model.layers.pos_ffn.weights, "lr": 0.01 , "weight_decay": 1.0, },
+#                 {'params': model.layers.emb_self_attn.W_Q.weight    , },
+#                 {'params': model.layers.emb_self_attn.W_K.weight    , },
+#                 {'params': model.layers.emb_self_attn.W_V.weight    , },
+#                 {'params': model.layers.emb_self_attn.fc_att.weight , },
+#                 {'params': model.layers.pos_ffn.fc[0].weight        , },
+#                 {'params': model.layers.pos_ffn.fc[0].bias          , },
+#                 {'params': model.layers.pos_ffn.fc[2].weight        , },
+#                 {'params': model.layers.pos_ffn.fc[2].bias          , },
+#                 {'params': model.layers.pos_ffn.fc_1.weight         , },
+#                 {'params': model.layers.pos_ffn.fc_1.bias           , },
+#                 {'params': model.layers.pos_ffn.fc_2.weight         , },
+#                 {'params': model.layers.pos_ffn.fc_2.bias           , },
+#                 {'params': model.layers.pos_ffn.fc_3.weight         , },
+#                 {'params': model.layers.pos_ffn.fc_3.bias           , },
+#             ], lr = learning_rate)
+# except:
+#     optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
+
+scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[25,50], gamma = 0.5)
 criterion = nn.MSELoss()
 
 
@@ -779,6 +781,7 @@ for epoch in range(epoch_num):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
     #====================================================================================================#
     model.eval()
