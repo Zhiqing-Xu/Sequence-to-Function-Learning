@@ -66,4 +66,14 @@ reg_scatter_distn_plot(y_pred_valid,
 
 ```
 
+### Pipeline.
+
+- M00_Data_PafAVariants_Prep.py : format the dataset and write to a file..
+- N00_Data_Preprocessing.py     : preprocess, prepare the data.
+- N03_LM_Embeddings.py          : get sequence embeddings.
+- N05A_SQembCNN_y.py            : train the model and evaluate.
+
+
+
+
 
