@@ -323,11 +323,14 @@ if __name__ == "__main__":
     #--------------------------------------------------#
     dataset_nme_list = ["NovoEnzyme",            # 0
                         "PafAVariants",          # 1
+                        "Rubisco",               # 2
                         ]
 
-    dataset_nme      = dataset_nme_list[1]
+    dataset_nme      = dataset_nme_list[2]
     #--------------------------------------------------#
     # Additional Informationm for certain datasets.
+    tm                    = {"tm" : "tm"}
+
     PafAVariants_val_dict = { "kcat_cMUP"             : "kcat_cMUP_s-1"               ,
                               "KM_cMUP"               : "KM_cMUP_uM"                  ,
                               "kcatOverKM_cMUP"       : "kcatOverKM_cMUP_M-1s-1"      ,
@@ -339,14 +342,17 @@ if __name__ == "__main__":
                               "FC1"                   : "FC1"                         ,
                               "FC2_3"                 : "FC2/3"                       ,
                               "FC4"                   : "FC4_s-1"                     ,
-                             }
+                            }
+    
+    Kcatmean              = {"Kcatmean" : "Kcatmean"}
 
     #--------------------------------------------------#
     # A dictionary of different datasets. 
     #                    dataset_nme-----------value_col--------------dataset_path----------------------------------seqs_len
     data_info_dict   = {"NovoEnzyme"       : ["tm"                     , "./NovoEnzyme/train.csv"                     ,   1200, ],  # 0
                         "PafAVariants"     : ["PafAVariants_val_dict"  , "./PafA_Variants/abf8761_data_processed.csv" ,   1200, ],  # 1
-                        ""                 : [""                       , ""                                           ,   1200, ],  # 2
+                        "Rubisco"          : ["Kcatmean"              , "./Rubisco.csv"                               ,   1200, ],  # 2
+                        ""                 : [""                       , ""                                           ,   1200, ],  # 3
                        }
 
     #--------------------------------------------------#

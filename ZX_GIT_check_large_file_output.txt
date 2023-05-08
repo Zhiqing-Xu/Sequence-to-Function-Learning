@@ -1,0 +1,8 @@
+List of files larger than 100MB 
+C:\Users\cesiu\Desktop\github_all\Git_Sequence-to-Function-Learning\N_DataProcessing\N03_PafAVariants_embedding_ESM_1B.p 
+C:\Users\cesiu\Desktop\github_all\Git_Sequence-to-Function-Learning\N_DataProcessing\N03_PafAVariants_embedding_ESM_1V.p 
+C:\Users\cesiu\Desktop\github_all\Git_Sequence-to-Function-Learning\N_DataProcessing\N03_PafAVariants_embedding_ESM_2_3B_0.p 
+C:\Users\cesiu\Desktop\github_all\Git_Sequence-to-Function-Learning\N_DataProcessing\N03_PafAVariants_embedding_ESM_2_3B_1.p 
+C:\Users\cesiu\Desktop\github_all\Git_Sequence-to-Function-Learning\N_DataProcessing\N03_PafAVariants_embedding_ESM_2_3B_2.p 
+C:\Users\cesiu\Desktop\github_all\Git_Sequence-to-Function-Learning\N_DataProcessing\N03_PafAVariants_embedding_ESM_2_650_0.p 
+C:\Users\cesiu\Desktop\github_all\Git_Sequence-to-Function-Learning\N_DataProcessing\N03_Rubisco_embedding_ESM_2_3B.p 

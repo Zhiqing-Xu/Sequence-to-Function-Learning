@@ -917,10 +917,11 @@ if __name__ == "__main__":
     # Args
     Step_code = "N03_"
     #--------------------------------------------------#
-    dataset_nme_list     = ["NovoEnzyme",            # 0
-                            "PafAVariants",          # 1
+    dataset_nme_list     = ["NovoEnzyme"    ,          # 0
+                            "PafAVariants"  ,          # 1
+                            "Rubisco"       ,          # 2
                             ]
-    dataset_nme          = dataset_nme_list[1]
+    dataset_nme          = dataset_nme_list[2]
     data_folder          = Path("N_DataProcessing/")
     input_seqs_fasta_file = "N00_" + dataset_nme + ".fasta"
     #====================================================================================================#
@@ -930,7 +931,7 @@ if __name__ == "__main__":
     #                        [9]         [10]        [11]         [12]
                         "ESM_2_650", "ESM_2_3B`", "ESM_2_3B", "ESM_2_15B"]
     # Select model using index. ( ##### !!!!! models_list[3] Electra deprecated ! )
-    model_select     = models_list[8] 
+    model_select     = models_list[10] 
     pretraining_name = "X01_" + dataset_nme + "_FT_inter_epoch5_trial_training.pt"
     #====================================================================================================#
     output_file_name_header = Step_code + dataset_nme + "_embedding_"
@@ -1011,5 +1012,9 @@ if __name__ == "__main__":
 #       M              M              M              M              M               M              M              M              M              M      #
 #       M              M              M              M              M               M              M              M              M              M      #
 #       M              M              M              M              M               M              M              M              M              M      #
+
+
+
+
 
 

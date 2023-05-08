@@ -291,6 +291,7 @@ def reg_scatter_distn_plot(y_pred,
     #--------------------------------------------------#
     # clear formats and return
     mpl.rcParams.update(mpl.rcParamsDefault)
+    plt.close("all")
     return
 
 

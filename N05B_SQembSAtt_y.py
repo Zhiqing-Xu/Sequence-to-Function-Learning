@@ -93,7 +93,7 @@ from ZX01_PLOT import *
 from ZX02_nn_utils import StandardScaler, normalize_targets
 
 
-seed = 42
+seed = 0
 random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
@@ -113,10 +113,11 @@ torch.cuda.manual_seed_all(seed)
 ## Args
 Step_code = "N05B_"
 #--------------------------------------------------#
-dataset_nme_list     = ["NovoEnzyme",            # 0
-                        "PafAVariants",          # 1
+dataset_nme_list     = ["NovoEnzyme"    ,        # 0
+                        "PafAVariants"  ,        # 1
+                        "Rubisco"       ,        # 2
                         ]
-dataset_nme          = dataset_nme_list[1]
+dataset_nme          = dataset_nme_list[2]
 
 data_folder = Path("N_DataProcessing/")
 
@@ -132,8 +133,8 @@ embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"    ,      #
                         "N03_" + dataset_nme + "_embedding_TAPE_FT.p"   ,      # 8
                         "N03_" + dataset_nme + "_embedding_Xlnet.p"     ,      # 9
                         ]
+embedding_file      = embedding_file_list[3]
 
-embedding_file      = embedding_file_list[0]
 
 properties_file     = "N00_" + dataset_nme + "_seqs_prpty_list.p"
 seqs_fasta_file     = "N00_" + dataset_nme + ".fasta"
@@ -159,10 +160,14 @@ prpty_list = [
                "FC2_3"                 , # 9
                "FC4"                   , # 10
               ],
+
+              [
+               "Kcatmean"             , # 0
+              ],
              ][dataset_nme_list.index(dataset_nme)]
 
 
-prpty_select = prpty_list[2]
+prpty_select = prpty_list[0]
 
 #====================================================================================================#
 # Prediction NN settings
@@ -187,11 +192,11 @@ learning_rate  =  [0.01        , # 0
 
 #====================================================================================================#
 # Hyperparameters.
-d_k       =  32     # 256
+d_k       =  256    # 256
 n_heads   =  1      # 1  
 out_dim   =  1     
-d_v       =  32     # 
-last_hid  =  1024    # d_ff
+d_v       =  256    # 
+last_hid  =  1280   # d_ff
 dropout   =  0.0    # 0.1, 0.6
 sub_vab   =  50
 #====================================================================================================#
@@ -393,7 +398,9 @@ with open( data_folder / properties_file, 'rb') as seqs_properties:
 ###################################################################################################################
 def Get_X_y_data(X_seqs_all_hiddens_list, properties_dict, prpty_select, log_value):
     # new: X_seqs_all_hiddens_list
+    print(properties_dict)
     y_data = properties_dict[prpty_select]
+
     X_seqs_all_hiddens = []
     y_seqs_prpty = []
 
@@ -714,26 +721,26 @@ print("#"*50)
 #optimizer = torch.optim.SGD(model.parameters(),lr = learning_rate)
 optimizer = torch.optim.Adam(model.parameters(),lr = learning_rate)
 
-# try:
-#     optimizer = torch.optim.Adam([
-#                 {'params': model.layers.pos_ffn.weights, "lr": 0.01 , "weight_decay": 1.0, },
-#                 {'params': model.layers.emb_self_attn.W_Q.weight    , },
-#                 {'params': model.layers.emb_self_attn.W_K.weight    , },
-#                 {'params': model.layers.emb_self_attn.W_V.weight    , },
-#                 {'params': model.layers.emb_self_attn.fc_att.weight , },
-#                 {'params': model.layers.pos_ffn.fc[0].weight        , },
-#                 {'params': model.layers.pos_ffn.fc[0].bias          , },
-#                 {'params': model.layers.pos_ffn.fc[2].weight        , },
-#                 {'params': model.layers.pos_ffn.fc[2].bias          , },
-#                 {'params': model.layers.pos_ffn.fc_1.weight         , },
-#                 {'params': model.layers.pos_ffn.fc_1.bias           , },
-#                 {'params': model.layers.pos_ffn.fc_2.weight         , },
-#                 {'params': model.layers.pos_ffn.fc_2.bias           , },
-#                 {'params': model.layers.pos_ffn.fc_3.weight         , },
-#                 {'params': model.layers.pos_ffn.fc_3.bias           , },
-#             ], lr = learning_rate)
-# except:
-#     optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
+try:
+    optimizer = torch.optim.Adam([
+                {'params': model.layers.pos_ffn.weights, "lr": 0.01 , "weight_decay": 1.0, },
+                {'params': model.layers.emb_self_attn.W_Q.weight    , },
+                {'params': model.layers.emb_self_attn.W_K.weight    , },
+                {'params': model.layers.emb_self_attn.W_V.weight    , },
+                {'params': model.layers.emb_self_attn.fc_att.weight , },
+                {'params': model.layers.pos_ffn.fc[0].weight        , },
+                {'params': model.layers.pos_ffn.fc[0].bias          , },
+                {'params': model.layers.pos_ffn.fc[2].weight        , },
+                {'params': model.layers.pos_ffn.fc[2].bias          , },
+                {'params': model.layers.pos_ffn.fc_1.weight         , },
+                {'params': model.layers.pos_ffn.fc_1.bias           , },
+                {'params': model.layers.pos_ffn.fc_2.weight         , },
+                {'params': model.layers.pos_ffn.fc_2.bias           , },
+                {'params': model.layers.pos_ffn.fc_3.weight         , },
+                {'params': model.layers.pos_ffn.fc_3.bias           , },
+            ], lr = learning_rate)
+except:
+    optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
 
 scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[25,50], gamma = 0.5)
 criterion = nn.MSELoss()
@@ -781,7 +788,26 @@ for epoch in range(epoch_num):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        scheduler.step()
+    scheduler.step()
+    #====================================================================================================#
+    # Used for plot predictions vs actuals on training set.
+    model.eval()
+    y_pred_train = []
+    y_real_train = []
+    #--------------------------------------------------#
+    # Validation.
+    for one_seq_ppt_group in train_loader:
+        seq_rep, seq_mask, target = one_seq_ppt_group["embedding"], one_seq_ppt_group["mask"], one_seq_ppt_group["target"]
+        seq_rep, seq_mask = seq_rep.double().cuda(), seq_mask.double().cuda()
+        output, _ = model(seq_rep, seq_mask)
+        output = output.cpu().detach().numpy().reshape(-1)
+        target = target.numpy()
+        y_pred_train.append(output)
+        y_real_train.append(target)
+    y_pred_train = np.concatenate(y_pred_train)
+    y_real_train = np.concatenate(y_real_train)
+    slope, intercept, r_value_va, p_value, std_err = scipy.stats.linregress(y_pred_train, y_real_train)
+
 
     #====================================================================================================#
     model.eval()
@@ -913,6 +939,9 @@ for epoch in range(epoch_num):
             y_pred = y_scalar.inverse_transform(y_pred)
             y_real = y_scalar.inverse_transform(y_real)
 
+            y_pred_valid = y_scalar.inverse_transform(y_pred_valid)
+            y_real_valid = y_scalar.inverse_transform(y_real_valid)
+
         _, _, r_value, _ , _ = scipy.stats.linregress(y_pred, y_real)
 
         reg_scatter_distn_plot(y_pred,
@@ -960,7 +989,29 @@ for epoch in range(epoch_num):
                                 result_folder   =  results_sub_folder,
                                 file_name       =  output_file_header + "_VA_" + "epoch_" + str(epoch+1),
                                 ) #For checking predictions fittings.
-
+        
+        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred_train, y_real_train)                       
+        reg_scatter_distn_plot(y_pred_train,
+                               y_real_train,
+                               fig_size        =  (10,8),
+                               marker_size     =  35,
+                               fit_line_color  =  "brown",
+                               distn_color_1   =  "gold",
+                               distn_color_2   =  "lightpink",
+                               # title         =  "Predictions vs. Actual Values\n R = " + \
+                               #                         str(round(r_value,3)) + \
+                               #                         ", Epoch: " + str(epoch+1) ,
+                               title           =  "",
+                               plot_title      =  "R = " + str(round(r_value,3)) + \
+                                                         "\nEpoch: " + str(epoch+1) ,
+                               x_label         =  "Actual Values",
+                               y_label         =  "Predictions",
+                               cmap            =  None,
+                               cbaxes          =  (0.425, 0.055, 0.525, 0.015),
+                               font_size       =  18,
+                               result_folder   =  results_sub_folder,
+                               file_name       =  output_file_header + "_TR_" + "epoch_" + str(epoch+1),
+                               ) #For checking predictions fittings.
 
     #====================================================================================================#
         if log_value == False and screen_bool==True:
