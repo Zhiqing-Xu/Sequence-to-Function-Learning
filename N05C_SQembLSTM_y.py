@@ -139,8 +139,9 @@ embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"   ,      # 
                         "N03_" + dataset_nme + "_embedding_Xlnet.p"    ,      # 8
                         "N03_" + dataset_nme + "_embedding_Ankh_Large.p",     # 9
                         "N03_" + dataset_nme + "_embedding_Ankh_Base.p",      #10
+			"N03_" + dataset_nme + "_embedding_CARP_640M.p",      #11
                         ]
-embedding_file      = embedding_file_list[9]
+embedding_file      = embedding_file_list[10]
 
 properties_file     = "N00_" + dataset_nme + "_seqs_prpty_list.p"
 seqs_fasta_file     = "N00_" + dataset_nme + ".fasta"
