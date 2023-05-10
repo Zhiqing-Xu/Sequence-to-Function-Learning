@@ -1017,6 +1017,65 @@ def N03_embedding_LM(dataset_nme,
              with open( Path(str(output_file).replace(".p", "_"+ str(data_set_id) +".p")), "wb" ) as h:
                  pickle.dump( seq_embedding_output, h )
          print("done")
+         
+    ########################################################################################################                        
+    #                                                                                                      #
+    #       .g8"""bgd     db     `7MM"""Mq. `7MM"""Mq.    .6*"                      `7MMM.     ,MMF'       #
+    #     .dP'     `M    ;MM:      MM   `MM.  MM   `MM. ,M'                           MMMb    dPMM         #
+    #     dM'       `   ,V^MM.     MM   ,M9   MM   ,M9 ,Mbmmm.        ,AM   ,pP""Yq.  M YM   ,M MM         #
+    #     MM           ,M  `MM     MMmmdM9    MMmmdM9  6M'  `Mb.     AVMM  6W'    `Wb M  Mb  M' MM         #
+    #     MM.          AbmmmqMA    MM  YM.    MM mmmmm MI     M8   ,W' MM  8M      M8 M  YM.P'  MM         #
+    #     `Mb.     ,' A'     VML   MM   `Mb.  MM       WM.   ,M9 ,W'   MM  YA.    ,A9 M  `YM'   MM         #
+    #       `"bmmmd'.AMA.   .AMMA.JMML. .JMM.JMML.      WMbmmd9  AmmmmmMMmm `Ybmmd9'.JML. `'  .JMML.       #
+    #                                                                  MM#                                 #
+    #                                                                  MM                                  #
+    ########################################################################################################
+    
+    if model_select == "CARP_640M":
+        
+        model, collater = load_model_and_alphabet('carp_640M')
+        
+        data_set = []
+        for seq_record in SeqIO.parse(input_file, "fasta"):
+            data_set.append([str(seq_record.seq)])
+        chunk_size = 2000
+        data_set_list = [data_set[i:i + chunk_size] for i in range(0, len(data_set), chunk_size)]
+
+        seq_ids = []
+        for data_set_id, one_data_set in enumerate(data_set_list):
+            #model.eval()
+            model.cuda()
+            seq_encodings = []
+            seq_all_hiddens = []; seq_ids=[]
+            for i in range(0, len(one_data_set), batch_size):
+                print(i, "out of", len(one_data_set), "; ", data_set_id, "out of", len(data_set_list))
+                if i+batch_size<=len(one_data_set):
+                    batch = one_data_set[i:i+batch_size]
+                else:
+                    batch = one_data_set[i:]
+                #print(batch)
+                #outputs = tokenizer.batch_encode_plus(batch, add_special_tokens=True, padding=False, return_tensors="pt")
+                outputs = collater(batch)[0]
+                #batch_labels, batch_strs, batch_tokens = batch_converter(batch)
+                seq_ids += seq_record.id
+                print(outputs.size())
+                #batch_tokens = batch_tokens.cuda()
+                with torch.no_grad():
+                    embeddings = model(outputs.cuda())
+                results = embeddings['representations']; results=results[56]; results=results.cpu().detach()
+                print(results.size())
+                sequence_representations = []
+                for i, ( seq ) in enumerate(batch):
+                    seq_all_hiddens.append(results[i, 1 : len(seq) + 1].numpy())
+                    sequence_representations.append(results[i, 1 : len(seq) + 1].mean(0))
+                sequence_representations = np.stack(sequence_representations)
+                seq_encodings.append(sequence_representations)
+            seq_embeddings = np.concatenate(seq_encodings)
+            print("seq_embeddings.shape: ", seq_embeddings.shape)
+            seq_embedding_output = {"seq_embeddings": seq_embeddings, "seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens}
+            with open( Path(str(output_file).replace(".p", "_"+ str(data_set_id) +".p")), "wb" ) as h:
+                pickle.dump( seq_embedding_output, h )
+        print("done")
     ###################################################################################################################
     ###################################################################################################################
     return seq_embedding_output
@@ -1047,10 +1106,10 @@ if __name__ == "__main__":
     #====================================================================================================#
     # List Index:          [0]     [1]      [2]       [3]       [4]     [5]     [6]       [7]      [8]
     models_list      = ["TAPE", "TAPE_FT", "BERT", "ALBERT", "Electra", "T5", "Xlnet", "ESM_1B", "ESM_1V", 
-    #                        [9]         [10]        [11]         [12]          [13]          [14]
-                        "ESM_2_650", "ESM_2_3B`", "ESM_2_3B", "ESM_2_15B", "Ankh_Large", "Ankh_Base"]
+    #                        [9]         [10]        [11]         [12]          [13]          [14]        [15]
+                        "ESM_2_650", "ESM_2_3B`", "ESM_2_3B", "ESM_2_15B", "Ankh_Large", "Ankh_Base", "CARP_640M"]
     # Select model using index. ( ##### !!!!! models_list[3] Electra deprecated ! )
-    model_select     = models_list[13] 
+    model_select     = models_list[15] 
     pretraining_name = "X01_" + dataset_nme + "_FT_inter_epoch5_trial_training.pt"
     #====================================================================================================#
     output_file_name_header = Step_code + dataset_nme + "_embedding_"
