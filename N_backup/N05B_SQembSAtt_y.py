@@ -31,8 +31,8 @@ if os.name == 'nt' or platform == 'win32':
         except:
             pass
 #--------------------------------------------------#
-#########################################################################################################
-#########################################################################################################
+###################################################################################################################
+###################################################################################################################
 import re
 import sys
 import time
@@ -93,7 +93,7 @@ from ZX01_PLOT import *
 from ZX02_nn_utils import StandardScaler, normalize_targets
 
 
-seed=42
+seed = 0
 random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
@@ -111,12 +111,13 @@ torch.cuda.manual_seed_all(seed)
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$# 
 
 ## Args
-Step_code = "N05A_"
+Step_code = "N05B_"
 #--------------------------------------------------#
-dataset_nme_list     = ["NovoEnzyme",            # 0
-                        "PafAVariants",          # 1
+dataset_nme_list     = ["NovoEnzyme"    ,        # 0
+                        "PafAVariants"  ,        # 1
+                        "Rubisco"       ,        # 2
                         ]
-dataset_nme          = dataset_nme_list[1]
+dataset_nme          = dataset_nme_list[2]
 
 data_folder = Path("N_DataProcessing/")
 
@@ -131,9 +132,9 @@ embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"    ,      #
                         "N03_" + dataset_nme + "_embedding_T5.p"        ,      # 7
                         "N03_" + dataset_nme + "_embedding_TAPE_FT.p"   ,      # 8
                         "N03_" + dataset_nme + "_embedding_Xlnet.p"     ,      # 9
-                        
                         ]
-embedding_file      = embedding_file_list[0]
+embedding_file      = embedding_file_list[3]
+
 
 properties_file     = "N00_" + dataset_nme + "_seqs_prpty_list.p"
 seqs_fasta_file     = "N00_" + dataset_nme + ".fasta"
@@ -159,17 +160,21 @@ prpty_list = [
                "FC2_3"                 , # 9
                "FC4"                   , # 10
               ],
+
+              [
+               "Kcatmean"             , # 0
+              ],
              ][dataset_nme_list.index(dataset_nme)]
 
 
-prpty_select = prpty_list[5]
+prpty_select = prpty_list[0]
 
 #====================================================================================================#
 # Prediction NN settings
 NN_type_list   = ["Reg", "Clf"]
 NN_type        = NN_type_list[0]
 epoch_num      = 100
-batch_size     = 256
+batch_size     = 256 * 4
 learning_rate  =  [0.01        , # 0
                    0.005       , # 1
                    0.002       , # 2
@@ -179,40 +184,30 @@ learning_rate  =  [0.01        , # 0
                    0.0001      , # 6
                    0.00005     , # 7
                    0.00002     , # 8
-                   0.00001     , # 8
+                   0.00001     , # 9
                    0.000005    , # 10
                    0.000002    , # 11
                    0.000001    , # 12
-                   ][7]          # 
+                   ][5]          # 
 
 #====================================================================================================#
 # Hyperparameters.
-'''
-model = CNN(in_dim   = NN_input_dim,
-            hid_dim  = 1024,
-            kernal_1 = 5,
-            out_dim  = 2, #2
-            kernal_2 = 3,
-            max_len  = seqs_max_len,
-            last_hid = 2048, #256
-            dropout  = 0.
-            )
-            '''
-hid_dim    = 512    # 256
-kernal_1   = 3      # 5
-out_dim    = 1      # 2
-kernal_2   = 3      # 3
-last_hid   = 1024   # 1024
-dropout    = 0.0     # 0
+d_k       =  256    # 256
+n_heads   =  1      # 1  
+out_dim   =  1     
+d_v       =  256    # 
+last_hid  =  1280   # d_ff
+dropout   =  0.0    # 0.1, 0.6
+sub_vab   =  50
 #====================================================================================================#
 # Prepare print outputs.
 hyperparameters_dict = dict([])
-for one_hyperpara in ["hid_dim", "kernal_1", "out_dim", "kernal_2", "last_hid", "dropout"]:
+for one_hyperpara in ["d_k", "n_heads", "out_dim", "d_v", "last_hid", "sub_vab", "dropout"]:
     hyperparameters_dict[one_hyperpara] = locals()[one_hyperpara]
 #====================================================================================================#
 # If log_value is True, screen_bool will be changed.
 screen_bool = bool(0) # Currently screening y values is NOT supported.
-log_value   = bool(1) ##### !!!!! If value is True, screen_bool will be changed
+log_value   = bool(0) ##### !!!!! If value is True, screen_bool will be changed
 if log_value == True:
     screen_bool = True
 #====================================================================================================#
@@ -403,7 +398,9 @@ with open( data_folder / properties_file, 'rb') as seqs_properties:
 ###################################################################################################################
 def Get_X_y_data(X_seqs_all_hiddens_list, properties_dict, prpty_select, log_value):
     # new: X_seqs_all_hiddens_list
+    print(properties_dict)
     y_data = properties_dict[prpty_select]
+
     X_seqs_all_hiddens = []
     y_seqs_prpty = []
 
@@ -457,7 +454,7 @@ print("seqs counts: ", X_seqs_num)
 seqs_max_len = max([  X_seqs_all_hiddens_list[i].shape[0] for i in range(len(X_seqs_all_hiddens_list))  ])
 print("seqs_max_len: ", seqs_max_len)
 
-NN_input_dim=X_seqs_all_hiddens_dim[1]
+NN_input_dim = X_seqs_all_hiddens_dim[1]
 print("NN_input_dim: ", NN_input_dim)
 
 # Print the total number of data points.
@@ -505,44 +502,51 @@ if log_value == False:
 #                           MM     ,M YA.   ,A9 8M   MM  `Mb    MM  YM.    ,   MM                                 #
 #                         .JMMmmmmMMM  `Ybmd9'  `Moo9^Yo. `Wbmd"MML. `Mbmmd' .JMML.                               #
 ###################################################################################################################
-class CNN_dataset(data.Dataset):
-    def __init__(self, embedding, target, max_len, X_scaler = None):
+
+class ATT_dataset(data.Dataset):
+    def __init__(self, embedding, label, X_scaler = None):
         super().__init__()
         self.embedding = embedding
-        self.target    = target
-        self.max_len   = max_len
+        self.label     = label
         self.X_scaler  = X_scaler
     def __len__(self):
         return len(self.embedding)
     def __getitem__(self, idx):
-        return self.embedding[idx], self.target[idx]
+        return self.embedding[idx], self.label[idx]
     def collate_fn(self, batch:List[Tuple[Any, ...]]) -> Dict[str, torch.Tensor]:
         embedding, target = zip(*batch)
         batch_size = len(embedding)
         emb_dim = embedding[0].shape[1]
-        arra = np.full([batch_size, self.max_len, emb_dim], 0.0)
+        max_len = np.max([s.shape[0] for s in embedding],0)
+        arra = np.full([batch_size, max_len, emb_dim], 0.0)
+        seq_mask = []
         for arr, seq in zip(arra, embedding):
+            padding_len = max_len - len(seq)
+            seq_mask.append(np.concatenate((np.ones(len(seq)), np.zeros(padding_len))).reshape(-1, max_len))
             arrslice = tuple(slice(dim) for dim in seq.shape)
             arr[arrslice] = seq
-        arra = np.reshape(arra, (batch_size, self.max_len * emb_dim))
+        seq_mask = np.concatenate(seq_mask, axis=0)
+        arra = np.reshape(arra, (batch_size, max_len * emb_dim))
         self.X_scaler = sklearn.preprocessing.StandardScaler() if self.X_scaler == None else self.X_scaler
         arra = self.X_scaler.transform(arra) if hasattr(self.X_scaler, "n_features_in_") else self.X_scaler.fit_transform(arra)
-        arra = np.reshape(arra, (batch_size, self.max_len, emb_dim))
-        return {'seqs_embeddings': torch.from_numpy(arra),  'y_property': torch.tensor(list(target))}
+        arra = np.reshape(arra, (batch_size, max_len, emb_dim))
+        return {'embedding': torch.from_numpy(arra), 'mask': torch.from_numpy(seq_mask), 'target': torch.tensor(list(target))}
 
-def generate_CNN_loader(X_tr_seqs, y_tr,
-                        X_va_seqs, y_va,
-                        X_ts_seqs, y_ts,
-                        seqs_max_len, batch_size):
-    X_y_tr = CNN_dataset(list(X_tr_seqs), y_tr, seqs_max_len)
-    X_y_va = CNN_dataset(list(X_va_seqs), y_va, seqs_max_len, X_y_tr.X_scaler)
-    X_y_ts = CNN_dataset(list(X_ts_seqs), y_ts, seqs_max_len, X_y_tr.X_scaler)
-    train_loader = data.DataLoader(X_y_tr, batch_size, True,  collate_fn = X_y_tr.collate_fn)
+#====================================================================================================#
+def ATT_loader(dataset_class, 
+               X_tr_seqs, y_tr,
+               X_va_seqs, y_va,
+               X_ts_seqs, y_ts,
+               batch_size,):
+    X_y_tr = dataset_class(list(X_tr_seqs), y_tr, X_scaler = None)
+    X_y_va = dataset_class(list(X_va_seqs), y_va, X_y_tr.X_scaler)
+    X_y_ts = dataset_class(list(X_ts_seqs), y_ts, X_y_tr.X_scaler)
+    train_loader = data.DataLoader(X_y_tr, batch_size, True , collate_fn = X_y_tr.collate_fn)
     valid_loader = data.DataLoader(X_y_va, batch_size, False, collate_fn = X_y_va.collate_fn)
     test_loader  = data.DataLoader(X_y_ts, batch_size, False, collate_fn = X_y_ts.collate_fn)
     return train_loader, valid_loader, test_loader
 
-train_loader, valid_loader, test_loader = generate_CNN_loader(X_tr, y_tr, X_va, y_va, X_ts, y_ts, seqs_max_len, batch_size)
+train_loader, valid_loader, test_loader = ATT_loader(ATT_dataset, X_tr, y_tr, X_va, y_va, X_ts, y_ts, batch_size)
 
 
 ###################################################################################################################
@@ -554,90 +558,155 @@ train_loader, valid_loader, test_loader = generate_CNN_loader(X_tr, y_tr, X_va, 
 #                         M  `YM'   MM  `Mb.    ,dP'   MM    ,dP'   MM     ,M   MM     ,M                         #
 #                       .JML. `'  .JMML.  `"bmmd"'   .JMMmmmdP'   .JMMmmmmMMM .JMMmmmmMMM                         #
 ###################################################################################################################
-class CNN(nn.Module):
-    def __init__(self,
-                 in_dim: int,
-                 hid_dim: int,
-                 kernal_1: int,
-                 out_dim: int,
-                 kernal_2: int,
-                 max_len: int,
-                 last_hid: int,
-                 dropout: float = 0.
-                 ):
-        super().__init__()
-        self.norm = nn.BatchNorm1d(in_dim)
-        self.conv1 = nn.Conv1d(in_dim, hid_dim, kernal_1, padding=int((kernal_1-1)/2))
-        self.dropout1 = nn.Dropout(dropout, inplace=True)
-        #--------------------------------------------------#
-        self.conv2_1 = nn.Conv1d(hid_dim, out_dim, kernal_2, padding=int((kernal_2-1)/2))
-        self.dropout2_1 = nn.Dropout(dropout, inplace=True)
-        #--------------------------------------------------#
-        self.conv2_2 = nn.Conv1d(hid_dim, hid_dim, kernal_2, padding=int((kernal_2-1)/2))
-        self.dropout2_2 = nn.Dropout(dropout, inplace=True)
-        #--------------------------------------------------#
-        self.conv3 = nn.Conv1d(hid_dim, out_dim, kernal_2, padding=int((kernal_2-1)/2))
-        self.dropout3 = nn.Dropout(dropout, inplace=True)
-        #self.pooling = nn.MaxPool1d(3, stride=3,padding=1)
-        #--------------------------------------------------#
-        self.fc_1 = nn.Linear(int(2*max_len*out_dim),last_hid)
-        self.fc_2 = nn.Linear(last_hid,last_hid)
-        self.fc_3 = nn.Linear(last_hid,1)
-        self.cls = nn.Sigmoid()
 
-    def forward(self, enc_inputs):
+
+
+#====================================================================================================#
+class ScaledDotProductAttention(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, Q, K, V, attn_mask):
+        scores = torch.matmul(Q, K.transpose(-1,-2))
+        scores.masked_fill_(attn_mask,-1e9)
+        attn = nn.Softmax(dim=-1)(scores)
+        context = torch.matmul(attn, V) # [batch_size, n_heads, len_q, d_v]
+        return context, attn
+
+#====================================================================================================#
+class MultiHeadAttentionwithonekey(nn.Module):
+    def __init__(self,d_model,d_k,n_heads,d_v,out_dim):
+        super().__init__()
+        self.n_heads = n_heads
+        self.d_k = d_k
+        self.d_v = d_v
+        self.out_dim = out_dim
+        self.W_Q = nn.Linear(d_model, d_k * n_heads, bias=False)
+        self.W_K = nn.Linear(d_model, d_k * n_heads, bias=False)
+        self.W_V = nn.Linear(d_model, d_v * n_heads, bias=False)
+        self.fc_att = nn.Linear(n_heads * d_v, out_dim, bias=False)
+
+    def forward(self, input_Q, input_K, input_V, attn_mask):
+        Q = self.W_Q(input_Q).view(input_Q.size(0),-1, self.n_heads, self.d_k).transpose(1, 2)
+        K = self.W_K(input_K).view(input_Q.size(0),-1, self.n_heads, self.d_k).transpose(1, 2)
+        V = self.W_V(input_V).view(input_V.size(0),-1, self.n_heads, self.d_k).transpose(1, 2)
+        #print(Q.size(), K.size())
+        attn_mask = attn_mask.unsqueeze(1).repeat(1,self.n_heads,1,1)
+        context, attn = ScaledDotProductAttention()(Q, K, V, attn_mask)
+        context = context.transpose(1, 2).reshape(input_Q.size(0), -1, self.n_heads * self.d_v)
+        output = self.fc_att(context) # [batch_size, len_q, out_dim]
+        return output, attn
+
+#====================================================================================================#
+class PoswiseFeedForwardNet(nn.Module):
+    def __init__(self, d_model, d_ff):
+        super().__init__()
+        self.fc = nn.Sequential(
+            nn.Linear(d_model, d_ff),
+            nn.ReLU(),
+            nn.Linear(d_ff, 1)
+            )
         #--------------------------------------------------#
-        output = enc_inputs.transpose(1, 2)
-        output = self.norm(output)
-        output = nn.functional.relu(self.conv1(output))
-        output = self.dropout1(output)
-        #--------------------------------------------------#
-        output_1 = nn.functional.relu(self.conv2_1(output))
-        output_1 = self.dropout2_1(output_1)
-        #--------------------------------------------------#
-        output_2 = nn.functional.relu(self.conv2_2(output)) + output
-        output_2 = self.dropout2_2(output_2)
-        #--------------------------------------------------#
-        output_2 = nn.functional.relu(self.conv3(output_2))
-        output_2 = self.dropout3(output_2)
-        #--------------------------------------------------#
-        output = torch.cat((output_1,output_2),1)
-        #print(output.size())
-        #--------------------------------------------------#
-        #output = self.pooling(output)
-        #--------------------------------------------------#
-        output = torch.flatten(output,1)
-        #print(output.size())
-        #--------------------------------------------------#
+        self.weights = nn.Parameter(torch.from_numpy(np.array([0.0,])), requires_grad = True)
+        self.fc_1    = nn.Linear(d_model, d_ff)
+        self.fc_2    = nn.Linear(d_ff, d_ff)
+        self.fc_3    = nn.Linear(d_ff, 1)
+
+    def forward(self, inputs, input_emb):
+        '''
+        inputs: [batch_size, src_len, out_dim]
+        '''
+        output = torch.flatten(inputs, start_dim = 1)
+        #output += input_emb.mean(dim = 1)
+        output = output*self.weights + input_emb.mean(dim = 1) * (1-self.weights)
+        #print(self.weights)
         output = self.fc_1(output)
         output = nn.functional.relu(output)
-        output = self.fc_2(output)
-        output = nn.functional.relu(output)
+        last_layer = self.fc_2(output)
+        output = nn.functional.relu(last_layer)
         output = self.fc_3(output)
-        return output, output_1
+
+        return output, last_layer
+
+#====================================================================================================#
+class EncoderLayer(nn.Module):
+    def __init__(self, d_model, d_k, n_heads, d_v, out_dim, d_ff): #out_dim = 1, n_head = 4, d_k = 256
+        super(EncoderLayer, self).__init__()
+        self.emb_self_attn = MultiHeadAttentionwithonekey(d_model, d_k, n_heads, d_v, out_dim)
+        self.pos_ffn = PoswiseFeedForwardNet(d_model, d_ff)
+
+    def forward(self, input_emb, emb_self_attn_mask, input_mask):
+        '''
+        input_emb: [batch_size, src_len, d_model]
+        emb_self_attn_mask: [batch_size, src_len, src_len]
+        '''
+        # output_emb: [batch_size, src_len, 1], attn: [batch_size, n_heads, src_len, src_len]
+        output_emb, attn = self.emb_self_attn(input_emb, input_emb, input_emb, emb_self_attn_mask) # input_emb to same Q,K,V
+        batch_mask = input_mask.unsqueeze(2)
+        output_emb = output_emb * batch_mask
+        pos_weights = nn.Softmax(dim = 1)(output_emb.masked_fill_(input_mask.unsqueeze(2).data.eq(0), -1e9)).permute(0,2,1) # [ batch_size, 1, src_len]
+        output_emb = torch.matmul(pos_weights, input_emb)
+        output_emb, last_layer = self.pos_ffn(output_emb, input_emb) # output_emb: [batch_size, d_model]
+        return output_emb, last_layer
+
+#====================================================================================================#
+# X05B
+class SQembSAtt_Model(nn.Module):
+    def __init__(self, d_model, d_k, n_heads, d_v, out_dim, d_ff):
+        super(SQembSAtt_Model, self).__init__()
+        self.layers = EncoderLayer(d_model, d_k, n_heads, d_v, out_dim, d_ff)
+
+    def get_attn_pad_mask(self, seq_mask):
+        batch_size, len_q = seq_mask.size()
+        _, len_k = seq_mask.size()
+        # eq(zero) is PAD token
+        pad_attn_mask = seq_mask.data.eq(0).unsqueeze(1)  # [batch_size, 1, len_k], True is masked
+        return pad_attn_mask.expand(batch_size, len_q, len_k)        
+
+    def forward(self, input_emb, input_mask):
+        '''
+        input_emb  : [batch_size, src_len, embedding_dim]
+        input_mask : [batch_size, src_len]
+        '''
+        emb_self_attn_mask = self.get_attn_pad_mask(input_mask) # [batch_size, src_len, src_len]
+        # output_emb: [batch_size, src_len, out_dim], emb_self_attn: [batch_size, n_heads, src_len, src_len]
+        output_emb, last_layer = self.layers(input_emb, emb_self_attn_mask, input_mask)
+        return output_emb, last_layer
 
 
 
 
 ###################################################################################################################
-#                        MMP""MM""YMM `7MM"""Mq.        db      `7MMF'`7MN.   `7MF'                               #
-#                        P'   MM   `7   MM   `MM.      ;MM:       MM    MMN.    M                                 #
-#                             MM        MM   ,M9      ,V^MM.      MM    M YMb   M                                 #
-#                             MM        MMmmdM9      ,M  `MM      MM    M  `MN. M                                 #
-#                             MM        MM  YM.      AbmmmqMA     MM    M   `MM.M                                 #
-#                             MM        MM   `Mb.   A'     VML    MM    M     YMM                                 #
-#                           .JMML.    .JMML. .JMM..AMA.   .AMMA..JMML..JML.    YM                                 #
+#                                `7MMF'        .g8""8q.         db      `7MM"""Yb.                                #
+#                                  MM        .dP'    `YM.      ;MM:       MM    `Yb.                              #
+#                                  MM        dM'      `MM     ,V^MM.      MM     `Mb                              #
+#                                  MM        MM        MM    ,M  `MM      MM      MM                              #
+#                                  MM      , MM.      ,MP    AbmmmqMA     MM     ,MP                              #
+#                                  MM     ,M `Mb.    ,dP'   A'     VML    MM    ,dP'                              #
+#                                .JMMmmmmMMM   `"bmmd"'   .AMA.   .AMMA..JMMmmmdP'                                #
 ###################################################################################################################
-model = CNN(
-            in_dim    =  NN_input_dim ,
-            hid_dim   =  hid_dim      ,
-            kernal_1  =  kernal_1     ,
-            out_dim   =  out_dim      ,
-            kernal_2  =  kernal_2     ,
-            max_len   =  seqs_max_len ,
-            last_hid  =  last_hid     ,
-            dropout   =  dropout      ,
-            )
+
+'''
+# Average across sequence dimension. (Apparently a bad idea.)
+model = SQembAvgD_Model( in_dim  = seqs_max_len , 
+                                   hid_1   = last_hid     , 
+                                   hid_2   = last_hid     ,
+                                   dropout = dropout      ,
+                                   )
+                                   '''
+
+# X05B
+
+model = SQembSAtt_Model(d_model    = NN_input_dim,
+                        d_k        = d_k,
+                        n_heads    = n_heads,
+                        d_v        = d_v,
+                        out_dim    = 1,
+                        d_ff       = last_hid
+                        )
+                        
+
+
 
 model.double()
 model.cuda()
@@ -649,11 +718,42 @@ print(model)
 #model.double()
 print("#"*50)
 #--------------------------------------------------#
-optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
-#optimizer = torch.optim.SGD(model.parameters(),lr=learning_rate)
+#optimizer = torch.optim.SGD(model.parameters(),lr = learning_rate)
+optimizer = torch.optim.Adam(model.parameters(),lr = learning_rate)
+
+try:
+    optimizer = torch.optim.Adam([
+                {'params': model.layers.pos_ffn.weights, "lr": 0.01 , "weight_decay": 1.0, },
+                {'params': model.layers.emb_self_attn.W_Q.weight    , },
+                {'params': model.layers.emb_self_attn.W_K.weight    , },
+                {'params': model.layers.emb_self_attn.W_V.weight    , },
+                {'params': model.layers.emb_self_attn.fc_att.weight , },
+                {'params': model.layers.pos_ffn.fc[0].weight        , },
+                {'params': model.layers.pos_ffn.fc[0].bias          , },
+                {'params': model.layers.pos_ffn.fc[2].weight        , },
+                {'params': model.layers.pos_ffn.fc[2].bias          , },
+                {'params': model.layers.pos_ffn.fc_1.weight         , },
+                {'params': model.layers.pos_ffn.fc_1.bias           , },
+                {'params': model.layers.pos_ffn.fc_2.weight         , },
+                {'params': model.layers.pos_ffn.fc_2.bias           , },
+                {'params': model.layers.pos_ffn.fc_3.weight         , },
+                {'params': model.layers.pos_ffn.fc_3.bias           , },
+            ], lr = learning_rate)
+except:
+    optimizer = torch.optim.Adam(model.parameters(),lr=learning_rate)
+
+scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[25,50], gamma = 0.5)
 criterion = nn.MSELoss()
 
+
 ###################################################################################################################
+#                        MMP""MM""YMM `7MM"""Mq.        db      `7MMF'`7MN.   `7MF'                               #
+#                        P'   MM   `7   MM   `MM.      ;MM:       MM    MMN.    M                                 #
+#                             MM        MM   ,M9      ,V^MM.      MM    M YMb   M                                 #
+#                             MM        MMmmdM9      ,M  `MM      MM    M  `MN. M                                 #
+#                             MM        MM  YM.      AbmmmqMA     MM    M   `MM.M                                 #
+#                             MM        MM   `Mb.   A'     VML    MM    M     YMM                                 #
+#                           .JMML.    .JMML. .JMM..AMA.   .AMMA..JMML..JML.    YM                                 #
 ###################################################################################################################
 # Step 6. Now, train the model
 print("\n\n\n>>>  Training... ")
@@ -661,7 +761,7 @@ print("="*80)
 
 max_r = []
 
-input_var_names_list = ["seqs_embeddings", ]
+input_var_names_list =  ["embedding" , "mask", ]
 
 for epoch in range(epoch_num): 
     begin_time = time.time()
@@ -679,14 +779,35 @@ for epoch in range(epoch_num):
             print( str(count_x) + "/" + str(len_train_loader) + "->" + "\n" + " " * 12, end=" ")
         elif ((count_x) % 20) == 0:
             print( str(count_x) + "/" + str(len_train_loader) + "->", end=" ")
+
         #--------------------------------------------------#
-        seq_rep, target = one_seq_ppt_group["seqs_embeddings"], one_seq_ppt_group["y_property"]
-        seq_rep, target = seq_rep.double().cuda(), target.double().cuda()
-        output, _ = model(seq_rep)
-        loss = criterion(output,target.view(-1,1))
+        seq_rep, seq_mask, target = one_seq_ppt_group["embedding"], one_seq_ppt_group["mask"], one_seq_ppt_group["target"]
+        seq_rep, seq_mask, target = seq_rep.double().cuda(), seq_mask.double().cuda(), target.double().cuda()
+        output, _ = model(seq_rep, seq_mask)
+        loss = criterion(output, target.view(-1,1))
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+    scheduler.step()
+    #====================================================================================================#
+    # Used for plot predictions vs actuals on training set.
+    model.eval()
+    y_pred_train = []
+    y_real_train = []
+    #--------------------------------------------------#
+    # Validation.
+    for one_seq_ppt_group in train_loader:
+        seq_rep, seq_mask, target = one_seq_ppt_group["embedding"], one_seq_ppt_group["mask"], one_seq_ppt_group["target"]
+        seq_rep, seq_mask = seq_rep.double().cuda(), seq_mask.double().cuda()
+        output, _ = model(seq_rep, seq_mask)
+        output = output.cpu().detach().numpy().reshape(-1)
+        target = target.numpy()
+        y_pred_train.append(output)
+        y_real_train.append(target)
+    y_pred_train = np.concatenate(y_pred_train)
+    y_real_train = np.concatenate(y_real_train)
+    slope, intercept, r_value_va, p_value, std_err = scipy.stats.linregress(y_pred_train, y_real_train)
+
 
     #====================================================================================================#
     model.eval()
@@ -695,9 +816,9 @@ for epoch in range(epoch_num):
     #--------------------------------------------------#
     # Validation.
     for one_seq_ppt_group in valid_loader:
-        seq_rep, target = one_seq_ppt_group["seqs_embeddings"], one_seq_ppt_group["y_property"]
-        seq_rep = seq_rep.double().cuda()
-        output, _ = model(seq_rep)
+        seq_rep, seq_mask, target = one_seq_ppt_group["embedding"], one_seq_ppt_group["mask"], one_seq_ppt_group["target"]
+        seq_rep, seq_mask = seq_rep.double().cuda(), seq_mask.double().cuda()
+        output, _ = model(seq_rep, seq_mask)
         output = output.cpu().detach().numpy().reshape(-1)
         target = target.numpy()
         y_pred_valid.append(output)
@@ -712,9 +833,9 @@ for epoch in range(epoch_num):
     #--------------------------------------------------#
 
     for one_seq_ppt_group in test_loader:
-        seq_rep, target = one_seq_ppt_group["seqs_embeddings"], one_seq_ppt_group["y_property"]
-        seq_rep = seq_rep.double().cuda()
-        output, _ = model(seq_rep)
+        seq_rep, seq_mask, target = one_seq_ppt_group["embedding"], one_seq_ppt_group["mask"], one_seq_ppt_group["target"]
+        seq_rep, seq_mask = seq_rep.double().cuda(), seq_mask.double().cuda()
+        output, _ = model(seq_rep, seq_mask)
         output = output.cpu().detach().numpy().reshape(-1)
         target = target.numpy()
         y_pred.append(output)
@@ -724,6 +845,15 @@ for epoch in range(epoch_num):
     #--------------------------------------------------#
     slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(y_pred, y_real)
 
+
+    #====================================================================================================#
+    #                  `7MM"""Mq.  `7MM"""YMM  `7MM"""Mq.   .g8""8q.   `7MM"""Mq.  MMP""MM""YMM 
+    #        `MM.        MM   `MM.   MM    `7    MM   `MM..dP'    `YM.   MM   `MM. P'   MM   `7 
+    #          `Mb.      MM   ,M9    MM   d      MM   ,M9 dM'      `MM   MM   ,M9       MM      
+    #   MMMMMMMMMMMMD    MMmmdM9     MMmmMM      MMmmdM9  MM        MM   MMmmdM9        MM      
+    #           ,M'      MM  YM.     MM   Y  ,   MM       MM.      ,MP   MM  YM.        MM      
+    #         .M'        MM   `Mb.   MM     ,M   MM       `Mb.    ,dP'   MM   `Mb.      MM      
+    #                  .JMML. .JMM..JMMmmmmMMM .JMML.       `"bmmd"'   .JMML. .JMM.   .JMML.    
     #====================================================================================================#
     # Report.
     loss_copy = copy.copy(loss)
@@ -793,12 +923,24 @@ for epoch in range(epoch_num):
 
     print("_" * 101)
 
+
+    #====================================================================================================#
+    #                   `7MM"""Mq. `7MMF'        .g8""8q.   MMP""MM""YMM 
+    #        `MM.         MM   `MM.  MM        .dP'    `YM. P'   MM   `7 
+    #          `Mb.       MM   ,M9   MM        dM'      `MM      MM      
+    #   MMMMMMMMMMMMD     MMmmdM9    MM        MM        MM      MM      
+    #           ,M'       MM         MM      , MM.      ,MP      MM      
+    #         .M'         MM         MM     ,M `Mb.    ,dP'      MM      
+    #                   .JMML.     .JMMmmmmMMM   `"bmmd"'      .JMML.    
     #====================================================================================================#
     # Plot.
     if ((epoch+1) % 1) == 0:
         if log_value == False:
             y_pred = y_scalar.inverse_transform(y_pred)
             y_real = y_scalar.inverse_transform(y_real)
+
+            y_pred_valid = y_scalar.inverse_transform(y_pred_valid)
+            y_real_valid = y_scalar.inverse_transform(y_real_valid)
 
         _, _, r_value, _ , _ = scipy.stats.linregress(y_pred, y_real)
 
@@ -847,7 +989,29 @@ for epoch in range(epoch_num):
                                 result_folder   =  results_sub_folder,
                                 file_name       =  output_file_header + "_VA_" + "epoch_" + str(epoch+1),
                                 ) #For checking predictions fittings.
-
+        
+        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred_train, y_real_train)                       
+        reg_scatter_distn_plot(y_pred_train,
+                               y_real_train,
+                               fig_size        =  (10,8),
+                               marker_size     =  35,
+                               fit_line_color  =  "brown",
+                               distn_color_1   =  "gold",
+                               distn_color_2   =  "lightpink",
+                               # title         =  "Predictions vs. Actual Values\n R = " + \
+                               #                         str(round(r_value,3)) + \
+                               #                         ", Epoch: " + str(epoch+1) ,
+                               title           =  "",
+                               plot_title      =  "R = " + str(round(r_value,3)) + \
+                                                         "\nEpoch: " + str(epoch+1) ,
+                               x_label         =  "Actual Values",
+                               y_label         =  "Predictions",
+                               cmap            =  None,
+                               cbaxes          =  (0.425, 0.055, 0.525, 0.015),
+                               font_size       =  18,
+                               result_folder   =  results_sub_folder,
+                               file_name       =  output_file_header + "_TR_" + "epoch_" + str(epoch+1),
+                               ) #For checking predictions fittings.
 
     #====================================================================================================#
         if log_value == False and screen_bool==True:
@@ -880,6 +1044,9 @@ for epoch in range(epoch_num):
 ###################################################################################################################
 ###################################################################################################################
 print(Step_code, "Done!")
+
+
+
 
 
 #       M              M              M              M              M               M              M              M              M              M      #
