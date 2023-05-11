@@ -323,13 +323,14 @@ if __name__ == "__main__":
     #--------------------------------------------------#
     dataset_nme_list = ["NovoEnzyme",            # 0
                         "PafAVariants",          # 1
-                        "Rubisco",               # 2
+                        "GFP",                   # 2
+                        "Rubisco",               # 3
+
                         ]
 
     dataset_nme      = dataset_nme_list[2]
     #--------------------------------------------------#
     # Additional Informationm for certain datasets.
-    tm                    = {"tm" : "tm"}
 
     PafAVariants_val_dict = { "kcat_cMUP"             : "kcat_cMUP_s-1"               ,
                               "KM_cMUP"               : "KM_cMUP_uM"                  ,
@@ -344,6 +345,7 @@ if __name__ == "__main__":
                               "FC4"                   : "FC4_s-1"                     ,
                             }
     
+    tm                    = {"tm" : "tm"}
     Kcatmean              = {"Kcatmean" : "Kcatmean"}
 
     #--------------------------------------------------#
@@ -351,18 +353,24 @@ if __name__ == "__main__":
     #                    dataset_nme-----------value_col--------------dataset_path----------------------------------seqs_len
     data_info_dict   = {"NovoEnzyme"       : ["tm"                     , "./NovoEnzyme/train.csv"                     ,   1200, ],  # 0
                         "PafAVariants"     : ["PafAVariants_val_dict"  , "./PafA_Variants/abf8761_data_processed.csv" ,   1200, ],  # 1
-                        "Rubisco"          : ["Kcatmean"              , "./Rubisco.csv"                               ,   1200, ],  # 2
-                        ""                 : [""                       , ""                                           ,   1200, ],  # 3
+                        "GFP"              : ["quantitative_function"  , "./GFP/sarkisyan.csv"                        ,   1200, ],  # 2
+                        "Rubisco"          : ["Kcatmean"              , "./Rubisco.csv"                               ,   1200, ],  # 3
+                        ""                 : [""                       , ""                                           ,   1200, ],  # 4
                        }
 
     #--------------------------------------------------#
     target_nme   = data_info_dict[dataset_nme][0]
     data_file    = data_info_dict[dataset_nme][1]
     max_seqs_len = data_info_dict[dataset_nme][2]
+
     #--------------------------------------------------#
     if target_nme in locals().keys():
         target_nme = locals()[target_nme]
+    else:
+        locals()[target_nme] = {target_nme : target_nme}
+        target_nme = locals()[target_nme]
     print(target_nme)
+
     #--------------------------------------------------#
     binary_class_bool = True
     #--------------------------------------------------#

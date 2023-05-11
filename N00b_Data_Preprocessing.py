@@ -329,6 +329,7 @@ if __name__ == "__main__":
     dataset_nme      = dataset_nme_list[2]
     #--------------------------------------------------#
     # Additional Informationm for certain datasets.
+
     PafAVariants_val_dict = { "kcat_cMUP"             : "kcat_cMUP_s-1"               ,
                               "KM_cMUP"               : "KM_cMUP_uM"                  ,
                               "kcatOverKM_cMUP"       : "kcatOverKM_cMUP_M-1s-1"      ,
@@ -341,6 +342,8 @@ if __name__ == "__main__":
                               "FC2_3"                 : "FC2/3"                       ,
                               "FC4"                   : "FC4_s-1"                     ,
                              }
+    
+
 
     #--------------------------------------------------#
     # A dictionary of different datasets. 
@@ -354,10 +357,15 @@ if __name__ == "__main__":
     target_nme   = data_info_dict[dataset_nme][0]
     data_file    = data_info_dict[dataset_nme][1]
     max_seqs_len = data_info_dict[dataset_nme][2]
+
     #--------------------------------------------------#
     if target_nme in locals().keys():
         target_nme = locals()[target_nme]
+    else:
+        locals()[target_nme] = {target_nme : target_nme}
+        target_nme = locals()[target_nme]
     print(target_nme)
+
     #--------------------------------------------------#
     binary_class_bool = True
     #--------------------------------------------------#
