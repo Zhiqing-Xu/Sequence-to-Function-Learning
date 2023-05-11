@@ -128,18 +128,18 @@ dataset_nme          = dataset_nme_list[1]
 
 data_folder = Path("N_DataProcessing/")
 
-embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"   ,      # 0
-                        "N03_" + dataset_nme + "_embedding_ESM_1V.p"   ,      # 1
-                        "N03_" + dataset_nme + "_embedding_ESM_2_650_0.p",    # 2
-                        "N03_" + dataset_nme + "_embedding_BERT.p"     ,      # 3
-                        "N03_" + dataset_nme + "_embedding_TAPE.p"     ,      # 4
-                        "N03_" + dataset_nme + "_embedding_ALBERT.p"   ,      # 5
-                        "N03_" + dataset_nme + "_embedding_T5.p"       ,      # 6
-                        "N03_" + dataset_nme + "_embedding_TAPE_FT.p"  ,      # 7
-                        "N03_" + dataset_nme + "_embedding_Xlnet.p"    ,      # 8
-                        "N03_" + dataset_nme + "_embedding_Ankh_Large.p",     # 9
-                        "N03_" + dataset_nme + "_embedding_Ankh_Base.p",      #10
-			"N03_" + dataset_nme + "_embedding_CARP_640M.p",      #11
+embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"      ,      # 0
+                        "N03_" + dataset_nme + "_embedding_ESM_1V.p"      ,      # 1
+                        "N03_" + dataset_nme + "_embedding_ESM_2_650_0.p" ,      # 2
+                        "N03_" + dataset_nme + "_embedding_BERT.p"        ,      # 3
+                        "N03_" + dataset_nme + "_embedding_TAPE.p"        ,      # 4
+                        "N03_" + dataset_nme + "_embedding_ALBERT.p"      ,      # 5
+                        "N03_" + dataset_nme + "_embedding_T5.p"          ,      # 6
+                        "N03_" + dataset_nme + "_embedding_TAPE_FT.p"     ,      # 7
+                        "N03_" + dataset_nme + "_embedding_Xlnet.p"       ,      # 8
+                        "N03_" + dataset_nme + "_embedding_Ankh_Large.p"  ,      # 9
+                        "N03_" + dataset_nme + "_embedding_Ankh_Base.p"   ,      # 10
+			            "N03_" + dataset_nme + "_embedding_CARP_640M.p"   ,      # 11
                         ]
 embedding_file      = embedding_file_list[10]
 
