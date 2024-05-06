@@ -113,27 +113,33 @@ torch.cuda.manual_seed_all(seed)
 ## Args
 Step_code = "N05B_"
 #--------------------------------------------------#
-dataset_nme_list     = ["NovoEnzyme"    ,        # 0
-                        "PafAVariants"  ,        # 1
-                        "Rubisco"       ,        # 2
-                        ]
-dataset_nme          = dataset_nme_list[2]
+dataset_nme_list = ["NovoEnzyme",            # 0
+                    "PafAVariants",          # 1
+                    "GFP",                   # 2
+                    "Rubisco",               # 3
+
+                    ]
+dataset_nme          = dataset_nme_list[1]
 
 data_folder = Path("N_DataProcessing/")
 
-embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"    ,      # 0
-                        "N03_" + dataset_nme + "_embedding_ESM_1V.p"    ,      # 1
-                        "N03_" + dataset_nme + "_embedding_ESM_2_650.p" ,      # 2
-                        "N03_" + dataset_nme + "_embedding_ESM_2_3B.p"  ,      # 3
-                        "N03_" + dataset_nme + "_embedding_BERT.p"      ,      # 4
+embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"      ,      # 0
+                        "N03_" + dataset_nme + "_embedding_ESM_1V.p"      ,      # 1
+                        "N03_" + dataset_nme + "_embedding_ESM_2_650.p"   ,      # 2
+                        "N03_" + dataset_nme + "_embedding_ESM_2_3B.p"    ,      # 3
 
-                        "N03_" + dataset_nme + "_embedding_TAPE.p"      ,      # 5
-                        "N03_" + dataset_nme + "_embedding_ALBERT.p"    ,      # 6
-                        "N03_" + dataset_nme + "_embedding_T5.p"        ,      # 7
-                        "N03_" + dataset_nme + "_embedding_TAPE_FT.p"   ,      # 8
-                        "N03_" + dataset_nme + "_embedding_Xlnet.p"     ,      # 9
+                        "N03_" + dataset_nme + "_embedding_BERT.p"        ,      # 4
+                        "N03_" + dataset_nme + "_embedding_TAPE.p"        ,      # 5
+                        "N03_" + dataset_nme + "_embedding_ALBERT.p"      ,      # 6
+                        "N03_" + dataset_nme + "_embedding_T5.p"          ,      # 7
+                        "N03_" + dataset_nme + "_embedding_TAPE_FT.p"     ,      # 8
+                        "N03_" + dataset_nme + "_embedding_Xlnet.p"       ,      # 9
+
+                        "N03_" + dataset_nme + "_embedding_Ankh_Large.p"  ,      # 10
+                        "N03_" + dataset_nme + "_embedding_Ankh_Base.p"   ,      # 11
+			            "N03_" + dataset_nme + "_embedding_CARP_640M.p"   ,      # 12
                         ]
-embedding_file      = embedding_file_list[3]
+embedding_file      = embedding_file_list[12]
 
 
 properties_file     = "N00_" + dataset_nme + "_seqs_prpty_list.p"
@@ -145,24 +151,24 @@ seqs_fasta_file     = "N00_" + dataset_nme + ".fasta"
 # Select properties (Y) of the model 
 prpty_list = [
               [
-               "tm"                    , # 0
+               "tm"                      , # 0
               ],
 
-              ["kcat_cMUP"             , # 0
-               "KM_cMUP"               , # 1
-               "kcatOverKM_cMUP"       , # 2
-               "kcatOverKM_MeP"        , # 3
-               "kcatOverKM_MecMUP"     , # 4
-               "Ki_Pi"                 , # 5
-               "fa"                    , # 6
-               "kcatOverKM_MePkchem"   , # 7
-               "FC1"                   , # 8
-               "FC2_3"                 , # 9
-               "FC4"                   , # 10
+              ["kcat_cMUP"               , # 0
+               "KM_cMUP"                 , # 1
+               "kcatOverKM_cMUP"         , # 2
+               "kcatOverKM_MeP"          , # 3
+               "kcatOverKM_MecMUP"       , # 4
+               "Ki_Pi"                   , # 5
+               "fa"                      , # 6
+               "kcatOverKM_MePkchem"     , # 7
+               "FC1"                     , # 8
+               "FC2_3"                   , # 9
+               "FC4"                     , # 10
               ],
 
               [
-               "Kcatmean"             , # 0
+               "quantitative_function"   , # 0
               ],
              ][dataset_nme_list.index(dataset_nme)]
 
@@ -935,15 +941,20 @@ for epoch in range(epoch_num):
     #====================================================================================================#
     # Plot.
     if ((epoch+1) % 1) == 0:
+
         if log_value == False:
+
             y_pred = y_scalar.inverse_transform(y_pred)
             y_real = y_scalar.inverse_transform(y_real)
 
             y_pred_valid = y_scalar.inverse_transform(y_pred_valid)
             y_real_valid = y_scalar.inverse_transform(y_real_valid)
 
-        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred, y_real)
+            y_pred_train = y_scalar.inverse_transform(y_pred_train)
+            y_real_train = y_scalar.inverse_transform(y_real_train)   
 
+
+        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred, y_real)
         reg_scatter_distn_plot(y_pred,
                                 y_real,
                                 fig_size        =  (10,8),
@@ -967,7 +978,7 @@ for epoch in range(epoch_num):
                                 ) #For checking predictions fittings.
 
 
-        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred_valid, y_real_valid)                       
+        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred_valid, y_real_valid)
         reg_scatter_distn_plot(y_pred_valid,
                                 y_real_valid,
                                 fig_size        =  (10,8),
@@ -989,8 +1000,9 @@ for epoch in range(epoch_num):
                                 result_folder   =  results_sub_folder,
                                 file_name       =  output_file_header + "_VA_" + "epoch_" + str(epoch+1),
                                 ) #For checking predictions fittings.
-        
-        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred_train, y_real_train)                       
+
+
+        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred_train, y_real_train)
         reg_scatter_distn_plot(y_pred_train,
                                y_real_train,
                                fig_size        =  (10,8),
@@ -1013,33 +1025,37 @@ for epoch in range(epoch_num):
                                file_name       =  output_file_header + "_TR_" + "epoch_" + str(epoch+1),
                                ) #For checking predictions fittings.
 
+
     #====================================================================================================#
-        if log_value == False and screen_bool==True:
+        if log_value == False and screen_bool == True:
+
+
             y_real = np.delete(y_real, np.where(y_pred == 0.0))
             y_pred = np.delete(y_pred, np.where(y_pred == 0.0))
             y_real = np.log10(y_real)
             y_pred = np.log10(y_pred)
             
+
             reg_scatter_distn_plot(y_pred,
-                                y_real,
-                                fig_size       = (10,8),
-                                marker_size    = 20,
-                                fit_line_color = "brown",
-                                distn_color_1  = "gold",
-                                distn_color_2  = "lightpink",
-                                # title         =  "Predictions vs. Actual Values\n R = " + \
-                                #                         str(round(r_value,3)) + \
-                                #                         ", Epoch: " + str(epoch+1) ,
-                                title           =  "",
-                                plot_title      =  "R = " + str(round(r_value,3)) + \
-                                                          "\nEpoch: " + str(epoch+1) ,
-                                x_label        = "Actual Values",
-                                y_label        = "Predictions",
-                                cmap           = None,
-                                font_size      = 18,
-                                result_folder  = results_sub_folder,
-                                file_name      = output_file_header + "_logplot" + "epoch_" + str(epoch+1),
-                                ) #For checking predictions fittings.
+                                   y_real,
+                                   fig_size       = (10,8),
+                                   marker_size    = 20,
+                                   fit_line_color = "brown",
+                                   distn_color_1  = "gold",
+                                   distn_color_2  = "lightpink",
+                                   # title         =  "Predictions vs. Actual Values\n R = " + \
+                                   #                         str(round(r_value,3)) + \
+                                   #                         ", Epoch: " + str(epoch+1) ,
+                                   title           =  "",
+                                   plot_title      =  "R = " + str(round(r_value,3)) + \
+                                                             "\nEpoch: " + str(epoch+1) ,
+                                   x_label        = "Actual Values",
+                                   y_label        = "Predictions",
+                                   cmap           = None,
+                                   font_size      = 18,
+                                   result_folder  = results_sub_folder,
+                                   file_name      = output_file_header + "_logplot" + "epoch_" + str(epoch+1),
+                                   ) #For checking predictions fittings.
 
 ###################################################################################################################
 ###################################################################################################################

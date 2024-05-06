@@ -72,6 +72,7 @@ from torch.utils import data as data
 from tape import datasets
 from tape import TAPETokenizer
 from tape import ProteinBertForMaskedLM
+from tape import UniRepForLM
 #--------------------------------------------------#
 from Z01_ModifiedModels import *
 from pathlib import Path
@@ -156,10 +157,11 @@ def N03_embedding_LM(dataset_nme,
     if model_select == "Unirep" or model_select == "Unirep_FT":
         #--------------------------------------------------#
         # Load model.
-        model = ProteinBertForMaskedLM.from_pretrained('bert-base')
+        model = UniRepForLM.from_pretrained('babbler-1900')
         #--------------------------------------------------#
-        if model_select == "TAPE":
-            pretraining_name == None
+        if model_select == "Unirep":
+            print("No pretraining model is used.")
+            pretraining_name = None
         #--------------------------------------------------#
         if pretraining_name is not None:
             checkpoint = torch.load( data_folder / pretraining_name )
@@ -167,8 +169,8 @@ def N03_embedding_LM(dataset_nme,
         #--------------------------------------------------#
         model.mlm = Identity()
         model.eval()
-        embed = datasets.EmbedDataset(data_file = input_file, tokenizer = "iupac")
-        loader = data.DataLoader(embed,batch_size,False,collate_fn = embed.collate_fn)
+        embed  = datasets.EmbedDataset(data_file = input_file, tokenizer = "unirep")
+        loader = data.DataLoader(embed, batch_size, False, collate_fn = embed.collate_fn)
         #--------------------------------------------------#
         count_x = 0
         model.cuda()
@@ -177,7 +179,7 @@ def N03_embedding_LM(dataset_nme,
         seq_all_hiddens = []
         seq_ids = []
         for seq_batch in loader:
-            count_x+=1
+            count_x += 1
             ids, input_ids, input_mask = seq_batch["ids"],seq_batch["input_ids"],seq_batch["input_mask"]
             input_ids, input_mask = input_ids.cuda(), input_mask.cuda()
             with torch.no_grad():
@@ -196,7 +198,7 @@ def N03_embedding_LM(dataset_nme,
             seq_ids += ids
         seq_embeddings = np.concatenate(seq_encodings)
         print("seq_embeddings.shape: ", seq_embeddings.shape)
-        seq_embedding_output = {"seq_embeddings":seq_embeddings, "seq_ids":seq_ids, "seq_all_hiddens":seq_all_hiddens}
+        seq_embedding_output = {"seq_embeddings" : seq_embeddings, "seq_ids" : seq_ids, "seq_all_hiddens" : seq_all_hiddens}
         pickle.dump( seq_embedding_output, open( output_file, "wb" ) )
         print("done")
 
@@ -917,26 +919,28 @@ if __name__ == "__main__":
     # Args
     Step_code = "N03_"
     #--------------------------------------------------#
-    dataset_nme_list     = ["NovoEnzyme"    ,          # 0
-                            "PafAVariants"  ,          # 1
-                            "Rubisco"       ,          # 2
+    dataset_nme_list     = ["NovoEnzyme",            # 0
+                            "PafAVariants",          # 1
+                            "GFP",                   # 2
+                            "Rubisco",               # 3
+
                             ]
-    dataset_nme          = dataset_nme_list[2]
+    dataset_nme          = dataset_nme_list[1]
     data_folder          = Path("N_DataProcessing/")
     input_seqs_fasta_file = "N00_" + dataset_nme + ".fasta"
     #====================================================================================================#
     #====================================================================================================#
     # List Index:          [0]     [1]      [2]       [3]       [4]     [5]     [6]       [7]      [8]
     models_list      = ["TAPE", "TAPE_FT", "BERT", "ALBERT", "Electra", "T5", "Xlnet", "ESM_1B", "ESM_1V", 
-    #                        [9]         [10]        [11]         [12]
-                        "ESM_2_650", "ESM_2_3B`", "ESM_2_3B", "ESM_2_15B"]
+    #                        [9]         [10]        [11]         [12]        [13]
+                        "ESM_2_650", "ESM_2_3B`", "ESM_2_3B", "ESM_2_15B", "Unirep"]
     # Select model using index. ( ##### !!!!! models_list[3] Electra deprecated ! )
-    model_select     = models_list[10] 
+    model_select     = models_list[13] 
     pretraining_name = "X01_" + dataset_nme + "_FT_inter_epoch5_trial_training.pt"
     #====================================================================================================#
     output_file_name_header = Step_code + dataset_nme + "_embedding_"
     #====================================================================================================#
-    batch_size    = 40
+    batch_size    = 20
     xlnet_mem_len = 512
     
     #====================================================================================================#

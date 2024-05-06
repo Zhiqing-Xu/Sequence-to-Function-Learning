@@ -7,3 +7,20 @@
 /N_DataProcessing/N05A_intermediate_results
 /N_DataProcessing/N05B_intermediate_results
 /N_DataProcessing/S05A_intermediate_results
+#--------------------------------------------------# 
+# Large Files 
+N_DataProcessing/N03_GFP_embedding_ESM_2_650_0.p 
+N_DataProcessing/N03_GFP_embedding_ESM_2_650_1.p 
+N_DataProcessing/N03_GFP_embedding_ESM_2_650_2.p 
+N_DataProcessing/N03_GFP_embedding_ESM_2_650_3.p 
+N_DataProcessing/N03_GFP_embedding_ESM_2_650_4.p 
+N_DataProcessing/N03_GFP_embedding_ESM_2_650_5.p 
+N_DataProcessing/N03_GFP_embedding_ESM_2_650_6.p 
+N_DataProcessing/N03_PafAVariants_embedding_Ankh_Large_0.p 
+N_DataProcessing/N03_PafAVariants_embedding_ESM_1B.p 
+N_DataProcessing/N03_PafAVariants_embedding_ESM_1V.p 
+N_DataProcessing/N03_PafAVariants_embedding_ESM_2_3B_0.p 
+N_DataProcessing/N03_PafAVariants_embedding_ESM_2_3B_1.p 
+N_DataProcessing/N03_PafAVariants_embedding_ESM_2_3B_2.p 
+N_DataProcessing/N03_PafAVariants_embedding_ESM_2_650_0.p 
+N_DataProcessing/N03_Rubisco_embedding_ESM_2_3B.p 

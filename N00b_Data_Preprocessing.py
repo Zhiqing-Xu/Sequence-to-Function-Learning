@@ -347,7 +347,7 @@ if __name__ == "__main__":
 
     #--------------------------------------------------#
     # A dictionary of different datasets. 
-    #                    dataset_nme-----------value_col--------------dataset_path----------------------------------seqs_len
+    #                    dataset_nme-----------value_col------------------dataset_path----------------------------------seqs_len
     data_info_dict   = {"NovoEnzyme"       : ["tm"                     , "./NovoEnzyme/train.csv"                     ,   1200, ],  # 0
                         "PafAVariants"     : ["PafAVariants_val_dict"  , "./PafA_Variants/abf8761_data_processed.csv" ,   1200, ],  # 1
                         "GFP"              : ["quantitative_function"  , "./GFP/sarkisyan.csv"                        ,   1200, ],  # 2

@@ -93,7 +93,7 @@ from ZX01_PLOT import *
 from ZX02_nn_utils import StandardScaler, normalize_targets
 
 
-seed=42
+seed=0
 random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
@@ -115,25 +115,31 @@ Step_code = "N05A_"
 #--------------------------------------------------#
 dataset_nme_list     = ["NovoEnzyme",            # 0
                         "PafAVariants",          # 1
+                        "GFP",                   # 2
+                        "Rubisco",               # 3
+
                         ]
 dataset_nme          = dataset_nme_list[1]
 
 data_folder = Path("N_DataProcessing/")
 
-embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"    ,      # 0
-                        "N03_" + dataset_nme + "_embedding_ESM_1V.p"    ,      # 1
-                        "N03_" + dataset_nme + "_embedding_ESM_2_650.p" ,      # 2
-                        "N03_" + dataset_nme + "_embedding_ESM_2_3B.p"  ,      # 3
-                        "N03_" + dataset_nme + "_embedding_BERT.p"      ,      # 4
+embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"      ,      # 0
+                        "N03_" + dataset_nme + "_embedding_ESM_1V.p"      ,      # 1
+                        "N03_" + dataset_nme + "_embedding_ESM_2_650.p"   ,      # 2
+                        "N03_" + dataset_nme + "_embedding_ESM_2_3B.p"    ,      # 3
 
-                        "N03_" + dataset_nme + "_embedding_TAPE.p"      ,      # 5
-                        "N03_" + dataset_nme + "_embedding_ALBERT.p"    ,      # 6
-                        "N03_" + dataset_nme + "_embedding_T5.p"        ,      # 7
-                        "N03_" + dataset_nme + "_embedding_TAPE_FT.p"   ,      # 8
-                        "N03_" + dataset_nme + "_embedding_Xlnet.p"     ,      # 9
-                        
+                        "N03_" + dataset_nme + "_embedding_BERT.p"        ,      # 4
+                        "N03_" + dataset_nme + "_embedding_TAPE.p"        ,      # 5
+                        "N03_" + dataset_nme + "_embedding_ALBERT.p"      ,      # 6
+                        "N03_" + dataset_nme + "_embedding_T5.p"          ,      # 7
+                        "N03_" + dataset_nme + "_embedding_TAPE_FT.p"     ,      # 8
+                        "N03_" + dataset_nme + "_embedding_Xlnet.p"       ,      # 9
+
+                        "N03_" + dataset_nme + "_embedding_Ankh_Large.p"  ,      # 10
+                        "N03_" + dataset_nme + "_embedding_Ankh_Base.p"   ,      # 11
+			            "N03_" + dataset_nme + "_embedding_CARP_640M.p"   ,      # 12
                         ]
-embedding_file      = embedding_file_list[0]
+embedding_file      = embedding_file_list[12]
 
 properties_file     = "N00_" + dataset_nme + "_seqs_prpty_list.p"
 seqs_fasta_file     = "N00_" + dataset_nme + ".fasta"
@@ -162,7 +168,7 @@ prpty_list = [
              ][dataset_nme_list.index(dataset_nme)]
 
 
-prpty_select = prpty_list[5]
+prpty_select = prpty_list[0]
 
 #====================================================================================================#
 # Prediction NN settings
@@ -183,7 +189,7 @@ learning_rate  =  [0.01        , # 0
                    0.000005    , # 10
                    0.000002    , # 11
                    0.000001    , # 12
-                   ][7]          # 
+                   ][6]          # 
 
 #====================================================================================================#
 # Hyperparameters.
@@ -198,11 +204,11 @@ model = CNN(in_dim   = NN_input_dim,
             dropout  = 0.
             )
             '''
-hid_dim    = 512    # 256
+hid_dim    = 256    # 256
 kernal_1   = 3      # 5
 out_dim    = 1      # 2
 kernal_2   = 3      # 3
-last_hid   = 1024   # 1024
+last_hid   = 1280   # 1024
 dropout    = 0.0     # 0
 #====================================================================================================#
 # Prepare print outputs.
@@ -212,7 +218,7 @@ for one_hyperpara in ["hid_dim", "kernal_1", "out_dim", "kernal_2", "last_hid", 
 #====================================================================================================#
 # If log_value is True, screen_bool will be changed.
 screen_bool = bool(0) # Currently screening y values is NOT supported.
-log_value   = bool(1) ##### !!!!! If value is True, screen_bool will be changed
+log_value   = bool(0) ##### !!!!! If value is True, screen_bool will be changed
 if log_value == True:
     screen_bool = True
 #====================================================================================================#
@@ -800,8 +806,8 @@ for epoch in range(epoch_num):
             y_pred = y_scalar.inverse_transform(y_pred)
             y_real = y_scalar.inverse_transform(y_real)
 
-        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred, y_real)
 
+        _, _, r_value, _ , _ = scipy.stats.linregress(y_pred, y_real)
         reg_scatter_distn_plot(y_pred,
                                 y_real,
                                 fig_size        =  (10,8),
@@ -823,6 +829,8 @@ for epoch in range(epoch_num):
                                 result_folder   =  results_sub_folder,
                                 file_name       =  output_file_header + "_TS_" + "epoch_" + str(epoch+1),
                                 ) #For checking predictions fittings.
+
+
 
 
         _, _, r_value, _ , _ = scipy.stats.linregress(y_pred_valid, y_real_valid)                       
@@ -849,13 +857,19 @@ for epoch in range(epoch_num):
                                 ) #For checking predictions fittings.
 
 
+
+
     #====================================================================================================#
         if log_value == False and screen_bool==True:
             y_real = np.delete(y_real, np.where(y_pred == 0.0))
             y_pred = np.delete(y_pred, np.where(y_pred == 0.0))
             y_real = np.log10(y_real)
             y_pred = np.log10(y_pred)
-            
+
+
+
+
+
             reg_scatter_distn_plot(y_pred,
                                 y_real,
                                 fig_size       = (10,8),
