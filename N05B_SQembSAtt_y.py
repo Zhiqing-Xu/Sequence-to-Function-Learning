@@ -118,6 +118,7 @@ dataset_nme_list = ["NovoEnzyme",            # 0
                     "GFP",                   # 2
                     "Rubisco",               # 3
 
+
                     ]
 dataset_nme          = dataset_nme_list[1]
 
@@ -138,8 +139,10 @@ embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"      ,     
                         "N03_" + dataset_nme + "_embedding_Ankh_Large.p"  ,      # 10
                         "N03_" + dataset_nme + "_embedding_Ankh_Base.p"   ,      # 11
 			            "N03_" + dataset_nme + "_embedding_CARP_640M.p"   ,      # 12
+                        "N03_" + dataset_nme + "_embedding_Unirep.p"      ,      # 13
                         ]
-embedding_file      = embedding_file_list[12]
+
+embedding_file      = embedding_file_list[13]
 
 
 properties_file     = "N00_" + dataset_nme + "_seqs_prpty_list.p"
@@ -170,6 +173,9 @@ prpty_list = [
               [
                "quantitative_function"   , # 0
               ],
+
+
+
              ][dataset_nme_list.index(dataset_nme)]
 
 
@@ -356,7 +362,6 @@ print("="*80)
 #====================================================================================================#
 # Get Sequence Embeddings from N03 pickles.
 
-print(embedding_file)
 
 if os.path.exists(data_folder / embedding_file):
     print("Sequence embeddings found in one file.")
@@ -404,7 +409,7 @@ with open( data_folder / properties_file, 'rb') as seqs_properties:
 ###################################################################################################################
 def Get_X_y_data(X_seqs_all_hiddens_list, properties_dict, prpty_select, log_value):
     # new: X_seqs_all_hiddens_list
-    print(properties_dict)
+    #print(properties_dict)
     y_data = properties_dict[prpty_select]
 
     X_seqs_all_hiddens = []
