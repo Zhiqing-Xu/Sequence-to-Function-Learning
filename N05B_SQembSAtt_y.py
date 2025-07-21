@@ -117,10 +117,11 @@ dataset_nme_list = ["NovoEnzyme",            # 0
                     "PafAVariants",          # 1
                     "GFP",                   # 2
                     "Rubisco",               # 3
+                    "ERBC",                  # 4
 
 
                     ]
-dataset_nme          = dataset_nme_list[1]
+dataset_nme          = dataset_nme_list[4]
 
 data_folder = Path("N_DataProcessing/")
 
@@ -142,7 +143,7 @@ embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"      ,     
                         "N03_" + dataset_nme + "_embedding_Unirep.p"      ,      # 13
                         ]
 
-embedding_file      = embedding_file_list[13]
+embedding_file      = embedding_file_list[2]
 
 
 properties_file     = "N00_" + dataset_nme + "_seqs_prpty_list.p"
@@ -174,7 +175,13 @@ prpty_list = [
                "quantitative_function"   , # 0
               ],
 
+              [
+               "quantitative_function"   , # 0
+              ],
 
+              [
+               "yield"                   , # 0
+              ],
 
              ][dataset_nme_list.index(dataset_nme)]
 
@@ -669,7 +676,7 @@ class SQembSAtt_Model(nn.Module):
 
     def get_attn_pad_mask(self, seq_mask):
         batch_size, len_q = seq_mask.size()
-        _, len_k = seq_mask.size()
+        _, len_k          = seq_mask.size()
         # eq(zero) is PAD token
         pad_attn_mask = seq_mask.data.eq(0).unsqueeze(1)  # [batch_size, 1, len_k], True is masked
         return pad_attn_mask.expand(batch_size, len_q, len_k)        

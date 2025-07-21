@@ -82,13 +82,13 @@ from pypdb import *
 # Print the DataFrame obtained.
 def beautiful_print(df):
     # Print the dataset in a well-organized format.
-    with pd.option_context('display.max_rows', 20, 
-                           'display.min_rows', 20, 
-                           'display.max_columns', 6, 
-                           #"display.max_colwidth", None,
-                           "display.width", None,
-                           "expand_frame_repr", True,
-                           "max_seq_items", None,):  # more options can be specified
+    with pd.option_context('display.max_rows'      , 20   , 
+                           'display.min_rows'      , 20   , 
+                           'display.max_columns'   , 6    , 
+                           #"display.max_colwidth" , None ,
+                           "display.width"         , None ,
+                           "expand_frame_repr"     , True ,
+                           "max_seq_items"         , None , ) :  # more options can be specified
         # Once the display.max_rows is exceeded, 
         # the display.min_rows options determines 
         # how many rows are shown in the truncated repr.

@@ -117,9 +117,11 @@ dataset_nme_list     = ["NovoEnzyme",            # 0
                         "PafAVariants",          # 1
                         "GFP",                   # 2
                         "Rubisco",               # 3
+                        "ERBC",                  # 4
 
-                        ]
-dataset_nme          = dataset_nme_list[1]
+
+                    ]
+dataset_nme          = dataset_nme_list[4]
 
 data_folder = Path("N_DataProcessing/")
 
@@ -138,8 +140,11 @@ embedding_file_list = [ "N03_" + dataset_nme + "_embedding_ESM_1B.p"      ,     
                         "N03_" + dataset_nme + "_embedding_Ankh_Large.p"  ,      # 10
                         "N03_" + dataset_nme + "_embedding_Ankh_Base.p"   ,      # 11
 			            "N03_" + dataset_nme + "_embedding_CARP_640M.p"   ,      # 12
+                        "N03_" + dataset_nme + "_embedding_Unirep.p"      ,      # 13
                         ]
-embedding_file      = embedding_file_list[12]
+
+embedding_file      = embedding_file_list[2]
+
 
 properties_file     = "N00_" + dataset_nme + "_seqs_prpty_list.p"
 seqs_fasta_file     = "N00_" + dataset_nme + ".fasta"
@@ -150,21 +155,34 @@ seqs_fasta_file     = "N00_" + dataset_nme + ".fasta"
 # Select properties (Y) of the model 
 prpty_list = [
               [
-               "tm"                    , # 0
+               "tm"                      , # 0
               ],
 
-              ["kcat_cMUP"             , # 0
-               "KM_cMUP"               , # 1
-               "kcatOverKM_cMUP"       , # 2
-               "kcatOverKM_MeP"        , # 3
-               "kcatOverKM_MecMUP"     , # 4
-               "Ki_Pi"                 , # 5
-               "fa"                    , # 6
-               "kcatOverKM_MePkchem"   , # 7
-               "FC1"                   , # 8
-               "FC2_3"                 , # 9
-               "FC4"                   , # 10
+              ["kcat_cMUP"               , # 0
+               "KM_cMUP"                 , # 1
+               "kcatOverKM_cMUP"         , # 2
+               "kcatOverKM_MeP"          , # 3
+               "kcatOverKM_MecMUP"       , # 4
+               "Ki_Pi"                   , # 5
+               "fa"                      , # 6
+               "kcatOverKM_MePkchem"     , # 7
+               "FC1"                     , # 8
+               "FC2_3"                   , # 9
+               "FC4"                     , # 10
               ],
+
+              [
+               "quantitative_function"   , # 0
+              ],
+
+              [
+               "quantitative_function"   , # 0
+              ],
+
+              [
+               "yield"                   , # 0
+              ],
+
              ][dataset_nme_list.index(dataset_nme)]
 
 

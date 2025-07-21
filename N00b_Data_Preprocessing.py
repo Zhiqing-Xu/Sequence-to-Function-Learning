@@ -324,9 +324,10 @@ if __name__ == "__main__":
     dataset_nme_list = ["NovoEnzyme",            # 0
                         "PafAVariants",          # 1
                         "GFP",                   # 2
+                        "ERBC",                  # 3
                         ]
 
-    dataset_nme      = dataset_nme_list[2]
+    dataset_nme      = dataset_nme_list[3]
     #--------------------------------------------------#
     # Additional Informationm for certain datasets.
 
@@ -351,6 +352,7 @@ if __name__ == "__main__":
     data_info_dict   = {"NovoEnzyme"       : ["tm"                     , "./NovoEnzyme/train.csv"                     ,   1200, ],  # 0
                         "PafAVariants"     : ["PafAVariants_val_dict"  , "./PafA_Variants/abf8761_data_processed.csv" ,   1200, ],  # 1
                         "GFP"              : ["quantitative_function"  , "./GFP/sarkisyan.csv"                        ,   1200, ],  # 2
+                        "ERBC"             : ["yield"                  , "./EnoateReductase/ERBC.csv"                 ,   1200, ],  # 3
                        }
 
     #--------------------------------------------------#
