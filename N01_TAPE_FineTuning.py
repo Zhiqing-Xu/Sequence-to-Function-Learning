@@ -1,26 +1,27 @@
 #!/usr/bin/env python
 # coding: utf-8
-###################################################################################################################
-###################################################################################################################
+#!/usr/bin/env python
+# coding: utf-8
+#====================================================================================================#
 # The following code ensures the code work properly in 
 # MS VS, MS VS CODE and jupyter notebook on both Linux and Windows.
-#--------------------------------------------------#
 import os 
 import sys
-import os.path
+from os import path
 from sys import platform
 from pathlib import Path
-#--------------------------------------------------#
+
 if __name__ == "__main__":
+    print("\n\n")
     print("="*80)
     if os.name == 'nt' or platform == 'win32':
         print("Running on Windows")
         if 'ptvsd' in sys.modules:
             print("Running in Visual Studio")
-#--------------------------------------------------#
+
     if os.name != 'nt' and platform != 'win32':
         print("Not Running on Windows")
-#--------------------------------------------------#
+
     if "__file__" in globals().keys():
         print('CurrentDir: ', os.getcwd())
         try:
@@ -37,7 +38,8 @@ if __name__ == "__main__":
                 os.chdir(workbookDir)
         except:
             print("Problems with navigating to the workbook dir.")
-#--------------------------------------------------#
+#====================================================================================================#
+# Imports
 ###################################################################################################################
 ###################################################################################################################
 import sys

@@ -7,37 +7,44 @@ Created on Tue Dec  6 12:40:03 2022
 
 #!/usr/bin/env python
 # coding: utf-8
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$#
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$#
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$#
-# Microsoft VS header
-#--------------------------------------------------#
+#====================================================================================================#
+# The following code ensures the code work properly in 
+# MS VS, MS VS CODE and jupyter notebook on both Linux and Windows.
 import os 
 import sys
-import os.path
+from os import path
 from sys import platform
 from pathlib import Path
-#--------------------------------------------------#
-if os.name == 'nt' or platform == 'win32':
-    print("Running on Windows")
-    if 'ptvsd' in sys.modules:
-        print("Running in Visual Studio")
+
+if __name__ == "__main__":
+    print("\n\n")
+    print("="*80)
+    if os.name == 'nt' or platform == 'win32':
+        print("Running on Windows")
+        if 'ptvsd' in sys.modules:
+            print("Running in Visual Studio")
+
+    if os.name != 'nt' and platform != 'win32':
+        print("Not Running on Windows")
+
+    if "__file__" in globals().keys():
+        print('CurrentDir: ', os.getcwd())
         try:
             os.chdir(os.path.dirname(__file__))
-            print('CurrentDir: ', os.getcwd())
         except:
-            pass
-#--------------------------------------------------#
+            print("Problems with navigating to the file dir.")
+        print('CurrentDir: ', os.getcwd())
     else:
-        print("Running outside Visual Studio")
+        print("Running in python jupyter notebook.")
         try:
             if not 'workbookDir' in globals():
                 workbookDir = os.getcwd()
                 print('workbookDir: ' + workbookDir)
                 os.chdir(workbookDir)
         except:
-            pass
-#--------------------------------------------------#
+            print("Problems with navigating to the workbook dir.")
+#====================================================================================================#
+# Imports
 #########################################################################################################
 #########################################################################################################
 import re

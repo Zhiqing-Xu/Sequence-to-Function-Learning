@@ -1,26 +1,25 @@
 #!/usr/bin/env python
 # coding: utf-8
-###################################################################################################################
-###################################################################################################################
+#====================================================================================================#
 # The following code ensures the code work properly in 
 # MS VS, MS VS CODE and jupyter notebook on both Linux and Windows.
-#--------------------------------------------------#
 import os 
 import sys
-import os.path
+from os import path
 from sys import platform
 from pathlib import Path
-#--------------------------------------------------#
+
 if __name__ == "__main__":
+    print("\n\n")
     print("="*80)
     if os.name == 'nt' or platform == 'win32':
         print("Running on Windows")
         if 'ptvsd' in sys.modules:
             print("Running in Visual Studio")
-#--------------------------------------------------#
+
     if os.name != 'nt' and platform != 'win32':
         print("Not Running on Windows")
-#--------------------------------------------------#
+
     if "__file__" in globals().keys():
         print('CurrentDir: ', os.getcwd())
         try:
@@ -37,25 +36,8 @@ if __name__ == "__main__":
                 os.chdir(workbookDir)
         except:
             print("Problems with navigating to the workbook dir.")
-#--------------------------------------------------#
-###################################################################################################################
-###################################################################################################################
-'''
-import simpleaudio as sa
-#--------------------------------------------------#
-def alert_sound(frequency, seconds):
-    frequency     # Our played note will be 440 Hz
-    seconds       # Note duration of 3 seconds
-    fs = 44100    # 44100 samples per second
-    t = np.linspace(0, seconds, seconds * fs, False)   # Generate array with seconds*sample_rate steps, ranging between 0 and seconds
-    note = np.sin(frequency * t * 2 * np.pi)           # Generate a 440 Hz sine wave
-    audio = note * (2**15 - 1) / np.max(np.abs(note))  # Ensure that highest value is in 16-bit range
-    audio = audio.astype(np.int16)                     # Convert to 16-bit data
-    play_obj = sa.play_buffer(audio, 1, 2, fs)         # Start playback
-    play_obj.wait_done()                               # Wait for playback to finish before exiting
-    '''
-###################################################################################################################
-###################################################################################################################
+#====================================================================================================#
+# Imports
 import sys
 import time
 import torch
@@ -74,7 +56,7 @@ from tape import TAPETokenizer
 from tape import ProteinBertForMaskedLM
 from tape import UniRepForLM
 #--------------------------------------------------#
-from Z01_ModifiedModels import *
+#from Z01_ModifiedModels import *
 from pathlib import Path
 #--------------------------------------------------#
 from Bio import SeqIO
@@ -88,6 +70,10 @@ from transformers import T5EncoderModel, T5Tokenizer
 from transformers import XLNetModel, XLNetTokenizer
 #--------------------------------------------------#
 import esm
+#--------------------------------------------------#
+import ankh
+#--------------------------------------------------#
+from sequence_models.pretrained import load_model_and_alphabet
 #====================================================================================================#
 # Imports for MSA
 from glob import glob
@@ -478,8 +464,12 @@ def N03_embedding_LM(dataset_nme,
     #                                                .JMML.      6mmm9                                                #
     ###################################################################################################################
     if model_select == "T5":
+        
         tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case = False )
         model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_uniref50")
+
+        print("123")
+
         model.cuda()
         model.eval()    
         training_set = []
@@ -518,6 +508,95 @@ def N03_embedding_LM(dataset_nme,
         print("seq_embeddings.shape: ", seq_embeddings.shape)
         seq_embedding_output = {"seq_embeddings": seq_embeddings, "seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens}
         pickle.dump( seq_embedding_output, open( output_file, "wb" ) )
+        print("done")
+
+    ###################################################################################################################
+    #                                    MMP""MM""YMM   M****** `YMM'   `MP' `7MMF'                                   #
+    #                                    P'   MM   `7  .M         VMb.  ,P     MM                                     #
+    #                                         MM       |bMMAg.     `MM.M'      MM                                     #
+    #                                         MM            `Mb      MMb       MM                                     #
+    #                                         MM             jM    ,M'`Mb.     MM      ,                              #
+    #                                         MM       (O)  ,M9   ,P   `MM.    MM     ,M                              #
+    #                                       .JMML.      6mmm9   .MM:.  .:MMa..JMMmmmmMMM                              #
+    ###################################################################################################################
+    if model_select == "T5XL":
+        tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_uniref50", do_lower_case = False )
+        model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_uniref50")
+
+        data_set = []
+        for seq_record in SeqIO.parse(input_file, "fasta"):
+            data_set.append((str(seq_record.id), str(seq_record.seq)))
+        chunk_size = 1000
+        data_set_list = [data_set[i:i + chunk_size] for i in range(0, len(data_set), chunk_size)]
+
+        for data_set_id, one_data_set in enumerate(data_set_list):
+            model.eval()
+            model.cuda()
+            seq_encodings   = []
+            seq_all_hiddens = []
+            seq_ids         = []
+            sequences       = []  
+
+            for i in range(0, len(one_data_set), batch_size):
+
+                print(i, "out of", len(one_data_set), "; ",data_set_id + 1, "out of", len(data_set_list))
+
+                batch = one_data_set[i : i + batch_size]
+                batch_ids  = [p[0] for p in batch]
+                batch_seqs = [p[1] for p in batch]
+
+                seq_ids   += batch_ids
+                sequences += batch_seqs
+
+                # ProtT5 expects space‑separated residues
+                spaced_seqs = [" ".join(list(s)) for s in batch_seqs]
+
+                enc = tokenizer.batch_encode_plus(
+                    spaced_seqs,
+                    add_special_tokens=True,
+                    padding=True,
+                    return_tensors="pt",
+                )
+
+                input_ids      = enc["input_ids"].cuda()
+                attention_mask = enc["attention_mask"].cuda()
+
+                with torch.no_grad():
+                    outputs = model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                    )
+
+                hidden = outputs.last_hidden_state.cpu().detach()   # [B, L, D]
+
+                sequence_representations = []
+                for j, seq in enumerate(batch_seqs):
+                    # first token is <cls>, so skip it
+                    seq_hidden = hidden[j, 1 : len(seq) + 1]
+
+                    # per‑residue representations
+                    seq_all_hiddens.append(seq_hidden.numpy())
+
+                    # mean‑pooled per‑sequence embedding
+                    sequence_representations.append(seq_hidden.mean(0))
+
+                seq_encodings.append(np.stack(sequence_representations))
+
+            # Save embeddings for this chunk
+            seq_embeddings = np.concatenate(seq_encodings)
+            print("seq_embeddings.shape:", seq_embeddings.shape)
+
+            seq_embedding_output = {
+                "seq_embeddings":  seq_embeddings,
+                "seq_ids":         seq_ids,
+                "seq_all_hiddens": seq_all_hiddens,
+                "sequences":       sequences,
+            }
+
+            out_path = Path(str(output_file).replace(".p", f"_{data_set_id}.p"))
+            with open(out_path, "wb") as h:
+                pickle.dump(seq_embedding_output, h)
+
         print("done")
 
 
@@ -587,43 +666,62 @@ def N03_embedding_LM(dataset_nme,
     #                   .JMMmmmmMMM P"Ybmmd"  .JML. `'  .JMML.              .JMML.   P^YbmdP'                         #
     ###################################################################################################################
     if model_select == "ESM_1B":
-        #model, alphabet = torch.hub.load("facebookresearch/esm", "esm1b_t33_650M_UR50S")
+        # model, alphabet = torch.hub.load("facebookresearch/esm", "esm1b_t33_650M_UR50S")
         model, alphabet = esm.pretrained.esm1b_t33_650M_UR50S()
         batch_converter = alphabet.get_batch_converter()
-        data_set = []
-        for seq_record in SeqIO.parse(input_file, "fasta"):
-            data_set.append((str(seq_record.id), str(seq_record.seq)))        
+
+        # Load FASTA
+        data_set = [(str(rec.id), str(rec.seq)) for rec in SeqIO.parse(input_file, "fasta")]
+
+        # Split into chunks
+        chunk_size    = 2000                
+        data_set_list = [data_set[i : i + chunk_size] for i in range(0, len(data_set), chunk_size)]
+
         model.eval()
         model.cuda()
-        seq_encodings = []
-        seq_all_hiddens = []
-        seq_ids = []
-        for i in range(0, len(data_set), batch_size):
-            print(i, "out of", len(data_set))
-            if i+batch_size<=len(data_set):
-                batch = data_set[i:i+batch_size]
-            else:
-                batch = data_set[i:]
-            #print(batch)
-            batch_labels, batch_strs, batch_tokens = batch_converter(batch)
-            seq_ids += batch_labels
-            print(batch_tokens.size())
-            batch_tokens = batch_tokens.cuda()
-            with torch.no_grad():
-                results = model(batch_tokens, repr_layers=[33])
-            results = results["representations"][33].cpu().detach()
-            print(results.size())
-            sequence_representations = []
-            for i, ( _ , seq ) in enumerate(batch):
-                seq_all_hiddens.append(results[i, 1 : len(seq) + 1].numpy())
-                sequence_representations.append(results[i, 1 : len(seq) + 1].mean(0))
-            sequence_representations = np.stack(sequence_representations)
-            seq_encodings.append(sequence_representations)
-        seq_embeddings = np.concatenate(seq_encodings)
-        print("seq_embeddings.shape: ", seq_embeddings.shape)
-        seq_embedding_output = {"seq_embeddings": seq_embeddings, "seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens}
-        pickle.dump( seq_embedding_output, open( output_file, "wb" ) )
+
+        for data_set_id, one_data_set in enumerate(data_set_list):
+            seq_encodings, seq_all_hiddens, seq_ids, sequences = [], [], [], []
+
+            for i in range(0, len(one_data_set), batch_size):
+                print(i, "out of", len(one_data_set), "; ",
+                    data_set_id + 1, "out of", len(data_set_list))
+
+                batch = one_data_set[i : i + batch_size]
+                batch_labels, batch_strs, batch_tokens = batch_converter(batch)
+                batch_tokens = batch_tokens.cuda()
+
+                seq_ids   += batch_labels
+                sequences += batch_strs   # keep raw sequences
+
+                with torch.no_grad():
+                    results = model(batch_tokens, repr_layers=[33])
+                results = results["representations"][33].cpu().detach()
+
+                # pool per‑residue embeddings → per‑sequence
+                sequence_representations = []
+                for j, (_, seq) in enumerate(batch):
+                    seq_all_hiddens.append(results[j, 1 : len(seq) + 1].numpy())
+                    sequence_representations.append(results[j, 1 : len(seq) + 1].mean(0))
+                seq_encodings.append(np.stack(sequence_representations))
+
+            # ------- save chunk -------
+            seq_embeddings = np.concatenate(seq_encodings)
+            print("seq_embeddings.shape:", seq_embeddings.shape)
+
+            seq_embedding_output = {
+                "seq_embeddings"  :   seq_embeddings , 
+                "seq_ids"         :   seq_ids        , 
+                "sequences"       :   sequences      , 
+                "seq_all_hiddens" :  seq_all_hiddens , 
+            }
+
+            out_path = Path(str(output_file).replace(".p", f"_{data_set_id}.p"))
+            with open(out_path, "wb") as fh:
+                pickle.dump(seq_embedding_output, fh)
+
         print("done")
+
 
 
     ###################################################################################################################
@@ -636,42 +734,66 @@ def N03_embedding_LM(dataset_nme,
     #                   .JMMmmmmMMM P"Ybmmd"  .JML. `'  .JMML.               .JMML.     W                             #
     ###################################################################################################################
     if model_select == "ESM_1V":
-        #model, alphabet = torch.hub.load("facebookresearch/esm", "esm1v_t33_650M_UR90S_1")
-        model, alphabet = esm.pretrained.esm1v_t33_650M_UR90S_1()
-        batch_converter = alphabet.get_batch_converter()
-        data_set = []
-        for seq_record in SeqIO.parse(input_file, "fasta"):
-            data_set.append((str(seq_record.id), str(seq_record.seq)))        
-        model.eval()
-        model.cuda()
-        seq_encodings = []
-        seq_all_hiddens = []
-        seq_ids = []
-        for i in range(0, len(data_set), batch_size):
-            print(i, "out of", len(data_set))
-            if i+batch_size<=len(data_set):
-                batch = data_set[i:i+batch_size]
-            else:
-                batch = data_set[i:]
-            #print(batch)
-            batch_labels, batch_strs, batch_tokens = batch_converter(batch)
-            seq_ids += batch_labels
-            print(batch_tokens.size())
-            batch_tokens = batch_tokens.cuda()
-            with torch.no_grad():
-                results = model(batch_tokens, repr_layers=[33])
-            results = results["representations"][33].cpu().detach()
-            print(results.size())
-            sequence_representations = []
-            for i, ( _ , seq ) in enumerate(batch):
-                seq_all_hiddens.append(results[i, 1 : len(seq) + 1].numpy())
-                sequence_representations.append(results[i, 1 : len(seq) + 1].mean(0))
-            sequence_representations = np.stack(sequence_representations)
-            seq_encodings.append(sequence_representations)
-        seq_embeddings = np.concatenate(seq_encodings)
-        print("seq_embeddings.shape: ", seq_embeddings.shape)
-        seq_embedding_output = {"seq_embeddings": seq_embeddings, "seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens}
-        pickle.dump( seq_embedding_output, open( output_file, "wb" ) )
+        # model, alphabet = torch.hub.load("facebookresearch/esm", "esm1v_t33_650M_UR90S_1")
+        model, alphabet   = esm.pretrained.esm1v_t33_650M_UR90S_1()
+        batch_converter   = alphabet.get_batch_converter()
+
+        # build full dataset
+        data_set = [(str(rec.id), str(rec.seq)) for rec in SeqIO.parse(input_file, "fasta")]
+
+        chunk_size = 2000                           # split into manageable pieces
+        data_set_list = [
+            data_set[i : i + chunk_size]            # one sub‑FASTA per chunk
+            for i in range(0, len(data_set), chunk_size)
+        ]
+
+        for data_set_id, one_data_set in enumerate(data_set_list):
+            model.eval()
+            model.cuda()
+
+            seq_encodings   = []
+            seq_all_hiddens = []
+            seq_ids         = []
+            sequences       = []
+
+            for i in range(0, len(one_data_set), batch_size):
+                print(i, "out of", len(one_data_set), "; ",
+                    data_set_id + 1, "out of", len(data_set_list))
+
+                batch = one_data_set[i : i + batch_size]
+                batch_labels, batch_strs, batch_tokens = batch_converter(batch)
+                batch_tokens = batch_tokens.cuda()
+
+                seq_ids   += batch_labels
+                sequences += batch_strs
+
+                with torch.no_grad():
+                    results = model(batch_tokens, repr_layers=[33])
+                results = results["representations"][33].cpu().detach()
+
+                sequence_representations = []
+                for j, (_, seq) in enumerate(batch):
+                    # per‑residue representations
+                    seq_all_hiddens.append(results[j, 1 : len(seq) + 1].numpy())
+                    # mean‑pool to one vector / seq
+                    sequence_representations.append(results[j, 1 : len(seq) + 1].mean(0))
+
+                seq_encodings.append(np.stack(sequence_representations))
+
+            seq_embeddings = np.concatenate(seq_encodings)
+            print("seq_embeddings.shape:", seq_embeddings.shape)
+
+            seq_embedding_output = {
+                "seq_embeddings"  :   seq_embeddings  , 
+                "seq_ids"         :   seq_ids         , 
+                "sequences"       :   sequences       , 
+                "seq_all_hiddens" :   seq_all_hiddens , 
+            }
+
+            out_path = Path(str(output_file).replace(".p", f"_{data_set_id}.p"))
+            with open(out_path, "wb") as h:
+                pickle.dump(seq_embedding_output, h)
+
         print("done")
 
     ###################################################################################################################
@@ -685,102 +807,52 @@ def N03_embedding_LM(dataset_nme,
     ###################################################################################################################
     if model_select == "ESM_2_650":
         # model, alphabet = torch.hub.load("facebookresearch/esm:main", "esm2_t33_650M_UR50D")
-        model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-        batch_converter = alphabet.get_batch_converter()
+        model, alphabet   = esm.pretrained.esm2_t33_650M_UR50D()
+        batch_converter   = alphabet.get_batch_converter()
 
 
         data_set = []
         for seq_record in SeqIO.parse(input_file, "fasta"):
             data_set.append((str(seq_record.id), str(seq_record.seq)))
-        chunk_size = 8000
+        chunk_size = 2000
         data_set_list = [data_set[i:i + chunk_size] for i in range(0, len(data_set), chunk_size)]
 
 
         for data_set_id, one_data_set in enumerate(data_set_list):
             model.eval()
             model.cuda()
-            seq_encodings = []
+            seq_encodings   = []
             seq_all_hiddens = []
-            seq_ids = []
+            seq_ids         = []
+            sequences       = []  
+
             for i in range(0, len(one_data_set), batch_size):
-                print(i, "out of", len(one_data_set), "; ", data_set_id, "out of", len(data_set_list))
-                if i+batch_size<=len(one_data_set):
-                    batch = one_data_set[i:i+batch_size]
-                else:
-                    batch = one_data_set[i:]
-                #print(batch)
+
+                print(i, "out of", len(one_data_set), "; ", data_set_id + 1, "out of", len(data_set_list))
+                batch = one_data_set[i:i+batch_size] if i + batch_size <= len(one_data_set) else one_data_set[i:]
                 batch_labels, batch_strs, batch_tokens = batch_converter(batch)
-                seq_ids += batch_labels
-                print(batch_tokens.size())
+                print("batch_tokens.size(): ", batch_tokens.size())
                 batch_tokens = batch_tokens.cuda()
+                seq_ids     += batch_labels
+                sequences   += batch_strs
+                
                 with torch.no_grad():
                     results = model(batch_tokens, repr_layers=[33])
                 results = results["representations"][33].cpu().detach()
-                print(results.size())
+
+                print("results.size(): ", results.size())
                 sequence_representations = []
                 for i, ( _ , seq ) in enumerate(batch):
                     seq_all_hiddens.append(results[i, 1 : len(seq) + 1].numpy())
                     sequence_representations.append(results[i, 1 : len(seq) + 1].mean(0))
-                sequence_representations = np.stack(sequence_representations)
-                seq_encodings.append(sequence_representations)
+                seq_encodings.append(np.stack(sequence_representations))
+
             seq_embeddings = np.concatenate(seq_encodings)
             print("seq_embeddings.shape: ", seq_embeddings.shape)
-            seq_embedding_output = {"seq_embeddings": seq_embeddings, "seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens}
-            with open( Path(str(output_file).replace(".p", "_"+ str(data_set_id) +".p").replace("`", "")), "wb" ) as h:
+            seq_embedding_output = {"seq_embeddings": seq_embeddings, "seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens, "sequences": sequences}
+            with open( Path(str(output_file).replace(".p", "_"+ str(data_set_id) +".p")), "wb" ) as h:
                 pickle.dump( seq_embedding_output, h )
-        print("done")
 
-
-
-    ###################################################################################################################
-    #              `7MM"""YMM   .M"""bgd `7MMM.     ,MMF'                        pd""b.   `7MM"""Yp,    ,'            #
-    #                MM    `7  ,MI    "Y   MMMb    dPMM                         (O)  `8b    MM    Yb   ;'             #
-    #                MM   d    `MMb.       M YM   ,M MM         pd*"*b.              ,89    MM    dP   bg             #
-    #                MMmmMM      `YMMNq.   M  Mb  M' MM        (O)   j8            ""Yb.    MM"""bg.   ""             #
-    #                MM   Y  , .     `MM   M  YM.P'  MM  mmmmm     ,;j9 mmmmm         88    MM    `Y                  #
-    #                MM     ,M Mb     dM   M  `YM'   MM         ,-='            (O)  .M'    MM    ,9                  #
-    #              .JMMmmmmMMM P"Ybmmd"  .JML. `'  .JMML.      Ammmmmmm          bmmmd'   .JMMmmmd9                   #
-    ###################################################################################################################
-    if model_select == "ESM_2_3B`":
-        data_set = []
-        for seq_record in SeqIO.parse(input_file, "fasta"):
-            data_set.append((str(seq_record.id), str(seq_record.seq)))            
-        #model, alphabet = torch.hub.load("facebookresearch/esm", "esm2_t36_3B_UR50D")
-
-        model, alphabet = esm.pretrained.esm2_t36_3B_UR50D()
-        batch_converter = alphabet.get_batch_converter()
-    
-        model.eval()
-        model.cuda()
-        seq_encodings = []
-        seq_all_hiddens = []
-        seq_ids = []
-        for i in range(0, len(data_set), batch_size):
-            print(i, "out of", len(data_set))
-            if i+batch_size<=len(data_set):
-                batch = data_set[i:i+batch_size]
-            else:
-                batch = data_set[i:]
-            #print(batch)
-            batch_labels, batch_strs, batch_tokens = batch_converter(batch)
-            seq_ids += batch_labels
-            print(batch_tokens.size())
-            batch_tokens = batch_tokens.cuda()
-            with torch.no_grad():
-                results = model(batch_tokens, repr_layers=[36])
-            results = results["representations"][36].cpu().detach()
-            print(results.size())
-            sequence_representations = []
-            for i, ( _ , seq ) in enumerate(batch):
-                seq_all_hiddens.append(results[i, 1 : len(seq) + 1].numpy())
-                #sequence_representations.append(results[i, 1 : len(seq) + 1].mean(0))
-            #sequence_representations = np.stack(sequence_representations)
-            #seq_encodings.append(sequence_representations)
-        #seq_embeddings = np.concatenate(seq_encodings)
-        #print("seq_embeddings.shape: ", seq_embeddings.shape)
-        #seq_embedding_output = {"seq_embeddings": seq_embeddings, "seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens}
-        seq_embedding_output = {"seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens}
-        pickle.dump( seq_embedding_output, open( output_file, "wb" ) )
         print("done")
 
 
@@ -796,49 +868,50 @@ def N03_embedding_LM(dataset_nme,
     if model_select == "ESM_2_3B":
 
         # model, alphabet = torch.hub.load("facebookresearch/esm:main", "esm2_t36_3B_UR50D")
-        model, alphabet = esm.pretrained.esm2_t36_3B_UR50D()
-        batch_converter = alphabet.get_batch_converter()
-
+        model, alphabet   = esm.pretrained.esm2_t36_3B_UR50D()
+        batch_converter   = alphabet.get_batch_converter()
 
         data_set = []
         for seq_record in SeqIO.parse(input_file, "fasta"):
             data_set.append((str(seq_record.id), str(seq_record.seq)))
-        chunk_size = 500
+        chunk_size = 1000
         data_set_list = [data_set[i:i + chunk_size] for i in range(0, len(data_set), chunk_size)]
-
 
         for data_set_id, one_data_set in enumerate(data_set_list):
             model.eval()
             model.cuda()
-            seq_encodings = []
+            seq_encodings   = []
             seq_all_hiddens = []
-            seq_ids = []
+            seq_ids         = []
+            sequences       = []  
+
             for i in range(0, len(one_data_set), batch_size):
+
                 print(i, "out of", len(one_data_set), "; ", data_set_id + 1, "out of", len(data_set_list))
-                if i+batch_size<=len(one_data_set):
-                    batch = one_data_set[i:i+batch_size]
-                else:
-                    batch = one_data_set[i:]
-                #print(batch)
+                batch = one_data_set[i:i+batch_size] if i + batch_size <= len(one_data_set) else one_data_set[i:]
                 batch_labels, batch_strs, batch_tokens = batch_converter(batch)
-                seq_ids += batch_labels
-                print(batch_tokens.size())
+                print("batch_tokens.size(): ", batch_tokens.size())
                 batch_tokens = batch_tokens.cuda()
+                seq_ids     += batch_labels
+                sequences   += batch_strs
+
                 with torch.no_grad():
                     results = model(batch_tokens, repr_layers=[36])
                 results = results["representations"][36].cpu().detach()
-                print(results.size())
+
+                print("results.size(): ", results.size())
                 sequence_representations = []
                 for i, ( _ , seq ) in enumerate(batch):
                     seq_all_hiddens.append(results[i, 1 : len(seq) + 1].numpy())
                     sequence_representations.append(results[i, 1 : len(seq) + 1].mean(0))
-                sequence_representations = np.stack(sequence_representations)
-                seq_encodings.append(sequence_representations)
+                seq_encodings.append(np.stack(sequence_representations))
+
             seq_embeddings = np.concatenate(seq_encodings)
             print("seq_embeddings.shape: ", seq_embeddings.shape)
-            seq_embedding_output = {"seq_embeddings": seq_embeddings, "seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens}
-            with open( Path(str(output_file).replace(".p", "_"+ str(data_set_id) +".p").replace("`", "")), "wb" ) as h:
+            seq_embedding_output = {"seq_embeddings": seq_embeddings, "seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens, "sequences": sequences}
+            with open( Path(str(output_file).replace(".p", "_"+ str(data_set_id) +".p")), "wb" ) as h:
                 pickle.dump( seq_embedding_output, h )
+
         print("done")
 
 
@@ -855,10 +928,68 @@ def N03_embedding_LM(dataset_nme,
     if model_select == "ESM_2_15B":
 
         # model, alphabet = torch.hub.load("facebookresearch/esm:main", "esm2_t48_15B_UR50D")
-        model, alphabet = esm.pretrained.esm2_t48_15B_UR50D()
-        batch_converter = alphabet.get_batch_converter()
+        model, alphabet   = esm.pretrained.esm2_t48_15B_UR50D()
+        batch_converter   = alphabet.get_batch_converter()
 
+        data_set = []
+        for seq_record in SeqIO.parse(input_file, "fasta"):
+            data_set.append((str(seq_record.id), str(seq_record.seq)))
+        chunk_size = 500
+        data_set_list = [data_set[i:i + chunk_size] for i in range(0, len(data_set), chunk_size)]
 
+        for data_set_id, one_data_set in enumerate(data_set_list):
+            model.eval()
+            model.cuda()
+            seq_encodings   = []
+            seq_all_hiddens = []
+            seq_ids         = []
+            sequences       = []  
+
+            for i in range(0, len(one_data_set), batch_size):
+
+                print(i, "out of", len(one_data_set), "; ", data_set_id + 1, "out of", len(data_set_list))
+                batch = one_data_set[i:i+batch_size] if i + batch_size <= len(one_data_set) else one_data_set[i:]
+                batch_labels, batch_strs, batch_tokens = batch_converter(batch)
+                print("batch_tokens.size(): ", batch_tokens.size())
+                batch_tokens = batch_tokens.cuda()
+                seq_ids     += batch_labels
+                sequences   += batch_strs
+
+                with torch.no_grad():
+                    results = model(batch_tokens, repr_layers=[48])
+                results = results["representations"][48].cpu().detach()
+
+                print("results.size(): ", results.size())
+                sequence_representations = []
+                for i, ( _ , seq ) in enumerate(batch):
+                    seq_all_hiddens.append(results[i, 1 : len(seq) + 1].numpy())
+                    sequence_representations.append(results[i, 1 : len(seq) + 1].mean(0))
+                seq_encodings.append(np.stack(sequence_representations))
+
+            seq_embeddings = np.concatenate(seq_encodings)
+            print("seq_embeddings.shape: ", seq_embeddings.shape)
+            seq_embedding_output = {"seq_embeddings": seq_embeddings, "seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens, "sequences": sequences}
+            with open( Path(str(output_file).replace(".p", "_"+ str(data_set_id) +".p")), "wb" ) as h:
+                pickle.dump( seq_embedding_output, h )
+
+        print("done")
+
+    ##########################################################################################################                                               
+    #                                     ,,                                                                 #
+    #        db                `7MM     `7MM            `7MMF'                                               #
+    #       ;MM:                 MM       MM              MM                                                 #
+    #      ,V^MM.   `7MMpMMMb.   MM  ,MP' MMpMMMb.        MM         ,6"Yb. `7Mb,od8 .P"Ybmmm .gP"Ya         #
+    #     ,M  `MM     MM    MM   MM ;Y    MM    MM        MM        8)   MM   MM' "':MI  I8  ,M'   Yb        #
+    #     AbmmmqMA    MM    MM   MM;Mm    MM    MM        MM      ,  ,pm9MM   MM     WmmmP"  8M""""""        #
+    #    A'     VML   MM    MM   MM `Mb.  MM    MM        MM     ,M 8M   MM   MM    8M       YM.    ,        #  
+    #  .AMA.   .AMMA.JMML  JMML.JMML. YA.JMML  JMML.    .JMMmmmmMMM `Moo9^Yo.JMML.   YMMMMMb  `Mbmmd'        #
+    #                                                                               6'     dP                #
+    #                                                                               Ybmmmd'                  #
+    ##########################################################################################################                                           
+    if model_select == "Ankh_Large":
+        
+        model, tokenizer = ankh.load_large_model()
+        
         data_set = []
         for seq_record in SeqIO.parse(input_file, "fasta"):
             data_set.append((str(seq_record.id), str(seq_record.seq)))
@@ -869,40 +1000,188 @@ def N03_embedding_LM(dataset_nme,
         for data_set_id, one_data_set in enumerate(data_set_list):
             model.eval()
             model.cuda()
-            seq_encodings = []
-            seq_all_hiddens = []
-            seq_ids = []
+            seq_encodings   = [] 
+            seq_all_hiddens = [] 
+            seq_ids         = [] 
+            sequences       = [] 
+
             for i in range(0, len(one_data_set), batch_size):
                 print(i, "out of", len(one_data_set), "; ", data_set_id, "out of", len(data_set_list))
-                if i+batch_size<=len(one_data_set):
-                    batch = one_data_set[i:i+batch_size]
-                else:
-                    batch = one_data_set[i:]
-                #print(batch)
-                batch_labels, batch_strs, batch_tokens = batch_converter(batch)
-                seq_ids += batch_labels
-                print(batch_tokens.size())
-                batch_tokens = batch_tokens.cuda()
-                with torch.no_grad():
-                    results = model(batch_tokens, repr_layers=[48])
-                results = results["representations"][48].cpu().detach()
-                print(results.size())
-                sequence_representations = []
-                for i, ( _ , seq ) in enumerate(batch):
-                    seq_all_hiddens.append(results[i, 1 : len(seq) + 1].numpy())
-                    sequence_representations.append(results[i, 1 : len(seq) + 1].mean(0))
-                sequence_representations = np.stack(sequence_representations)
-                seq_encodings.append(sequence_representations)
-            seq_embeddings = np.concatenate(seq_encodings)
-            print("seq_embeddings.shape: ", seq_embeddings.shape)
-            seq_embedding_output = {"seq_embeddings": seq_embeddings, "seq_ids": seq_ids, "seq_all_hiddens": seq_all_hiddens}
-            with open( Path(str(output_file).replace(".p", "_"+ str(data_set_id) +".p")), "wb" ) as h:
-                pickle.dump( seq_embedding_output, h )
-        print("done")
 
+                batch = one_data_set[i:i + batch_size] if i + batch_size <= len(one_data_set) else one_data_set[i:]
+                ids_batch, seqs_batch = zip(*batch)                 # split tuples
+                seq_ids              += ids_batch
+                sequences            += seqs_batch
+
+                outputs = tokenizer.batch_encode_plus(seqs_batch, add_special_tokens=True, padding=True, return_tensors="pt")
+
+                with torch.no_grad():
+                    embeddings = model(outputs["input_ids"].cuda(), attention_mask=outputs["attention_mask"].cuda())
+                results = embeddings[0].cpu().detach()              # (B, L, D)
+
+                print("results.size(): ", results.size())
+                sequence_representations = []
+                for j, seq in enumerate(seqs_batch):
+                    # drop <s> and </s>, keep per‑residue hidden states
+                    seq_all_hiddens.append(results[j, 1: len(seq) + 1].numpy())
+                    sequence_representations.append(results[j, 1: len(seq) + 1].mean(0))
+                seq_encodings.append(np.stack(sequence_representations))
+
+            seq_embeddings = np.concatenate(seq_encodings)
+            print("seq_embeddings.shape:", seq_embeddings.shape)
+            seq_embedding_output = {
+                "seq_embeddings"  :   seq_embeddings  , 
+                "seq_ids"         :   seq_ids         , 
+                "sequences"       :   sequences       , 
+                "seq_all_hiddens" :   seq_all_hiddens , 
+            }
+
+            out_path = Path(str(output_file).replace(".p", f"_{data_set_id}.p"))
+            with open(out_path, "wb") as h:
+                pickle.dump(seq_embedding_output, h)
+
+        print("done")
+        
+     ######################################################################################################                                                                                        
+     #                                     ,,                                                             #
+     #        db                `7MM     `7MM            `7MM"""Yp,                                       #
+     #       ;MM:                 MM       MM              MM    Yb                                       #
+     #      ,V^MM.   `7MMpMMMb.   MM  ,MP' MMpMMMb.        MM    dP  ,6"Yb.  ,pP"Ybd  .gP"Ya              #
+     #     ,M  `MM     MM    MM   MM ;Y    MM    MM        MM"""bg. 8)   MM  8I   `" ,M'   Yb             #
+     #     AbmmmqMA    MM    MM   MM;Mm    MM    MM        MM    `Y  ,pm9MM  `YMMMa. 8M""""""             #
+     #    A'     VML   MM    MM   MM `Mb.  MM    MM        MM    ,9 8M   MM  L.   I8 YM.    ,             #
+     #  .AMA.   .AMMA.JMML  JMML.JMML. YA.JMML  JMML.    .JMMmmmd9  `Moo9^Yo.M9mmmP'  `Mbmmd'             #
+     #                                                                                                    #
+     ######################################################################################################  
+     
+    if model_select == "Ankh_Base":
+         
+        model, tokenizer = ankh.load_base_model()
+         
+        data_set = []
+        for seq_record in SeqIO.parse(input_file, "fasta"):
+            data_set.append((str(seq_record.id), str(seq_record.seq)))
+        chunk_size = 2000
+        data_set_list = [data_set[i:i + chunk_size] for i in range(0, len(data_set), chunk_size)]
+
+
+        for data_set_id, one_data_set in enumerate(data_set_list):
+            model.eval()
+            model.cuda()
+            seq_encodings   = [] 
+            seq_all_hiddens = [] 
+            seq_ids         = [] 
+            sequences       = [] 
+
+            for i in range(0, len(one_data_set), batch_size):
+                print(i, "out of", len(one_data_set), "; ", data_set_id, "out of", len(data_set_list))
+
+                batch = one_data_set[i:i + batch_size] if i + batch_size <= len(one_data_set) else one_data_set[i:]
+                ids_batch, seqs_batch = zip(*batch)                 # split tuples
+                seq_ids              += ids_batch
+                sequences            += seqs_batch
+
+                outputs = tokenizer.batch_encode_plus(seqs_batch, add_special_tokens=True, padding=True, return_tensors="pt")
+
+                with torch.no_grad():
+                    embeddings = model(outputs["input_ids"].cuda(), attention_mask=outputs["attention_mask"].cuda())
+                results = embeddings[0].cpu().detach()              # (B, L, D)
+
+                print("results.size(): ", results.size())
+                sequence_representations = []
+                for j, seq in enumerate(seqs_batch):
+                    # drop <s> and </s>, keep per‑residue hidden states
+                    seq_all_hiddens.append(results[j, 1: len(seq) + 1].numpy())
+                    sequence_representations.append(results[j, 1: len(seq) + 1].mean(0))
+                seq_encodings.append(np.stack(sequence_representations))
+
+            seq_embeddings = np.concatenate(seq_encodings)
+            print("seq_embeddings.shape:", seq_embeddings.shape)
+            seq_embedding_output = {
+                "seq_embeddings"  :   seq_embeddings  , 
+                "seq_ids"         :   seq_ids         , 
+                "sequences"       :   sequences       , 
+                "seq_all_hiddens" :   seq_all_hiddens , 
+            }
+
+            out_path = Path(str(output_file).replace(".p", f"_{data_set_id}.p"))
+            with open(out_path, "wb") as h:
+                pickle.dump(seq_embedding_output, h)
+
+        print("done")
+         
+    ########################################################################################################                        
+    #                                                                                                      #
+    #       .g8"""bgd     db     `7MM"""Mq. `7MM"""Mq.    .6*"                      `7MMM.     ,MMF'       #
+    #     .dP'     `M    ;MM:      MM   `MM.  MM   `MM. ,M'                           MMMb    dPMM         #
+    #     dM'       `   ,V^MM.     MM   ,M9   MM   ,M9 ,Mbmmm.        ,AM   ,pP""Yq.  M YM   ,M MM         #
+    #     MM           ,M  `MM     MMmmdM9    MMmmdM9  6M'  `Mb.     AVMM  6W'    `Wb M  Mb  M' MM         #
+    #     MM.          AbmmmqMA    MM  YM.    MM mmmmm MI     M8   ,W' MM  8M      M8 M  YM.P'  MM         #
+    #     `Mb.     ,' A'     VML   MM   `Mb.  MM       WM.   ,M9 ,W'   MM  YA.    ,A9 M  `YM'   MM         #
+    #       `"bmmmd'.AMA.   .AMMA.JMML. .JMM.JMML.      WMbmmd9  AmmmmmMMmm `Ybmmd9'.JML. `'  .JMML.       #
+    #                                                                  MM#                                 #
+    #                                                                  MM                                  #
+    ########################################################################################################
+    
+    if model_select == "CARP_640M":
+
+        model, collater = load_model_and_alphabet("carp_640M")
+
+        data_set = []
+        for seq_record in SeqIO.parse(input_file, "fasta"):
+            data_set.append((str(seq_record.id), str(seq_record.seq)))
+        chunk_size = 1000
+        data_set_list = [data_set[i:i + chunk_size] for i in range(0, len(data_set), chunk_size)]
+
+        for data_set_id, one_data_set in enumerate(data_set_list):
+            model.eval()
+            model.cuda()
+            seq_encodings   = []
+            seq_all_hiddens = []
+            seq_ids         = []
+            sequences       = []  
+
+            for i in range(0, len(one_data_set), batch_size):
+
+                print(i, "out of", len(one_data_set), "; ", data_set_id + 1, "out of", len(data_set_list))
+                batch = one_data_set[i : i + batch_size]
+                batch_ids  = [p[0] for p in batch]
+                batch_seqs = [p[1] for p in batch]
+                seq_ids   += batch_ids
+                sequences += batch_seqs
+
+                # collater returns (tokens, lengths); we want only tokens
+                batch_tokens = collater(batch_seqs)[0].cuda()
+
+                with torch.no_grad():
+                    out = model(batch_tokens)
+                hidden = out["representations"][56].cpu().detach()  # layer 56
+
+                sequence_representations = []
+                for j, seq in enumerate(batch_seqs):
+                    seq_all_hiddens.append(hidden[j, 1 : len(seq) + 1].numpy())
+                    sequence_representations.append(hidden[j, 1 : len(seq) + 1].mean(0))
+                seq_encodings.append(np.stack(sequence_representations))
+
+            seq_embeddings = np.concatenate(seq_encodings)
+            print("seq_embeddings.shape:", seq_embeddings.shape)
+
+            seq_embedding_output = {
+                "seq_embeddings":  seq_embeddings,
+                "seq_ids":         seq_ids,
+                "seq_all_hiddens": seq_all_hiddens,
+                "sequences":       sequences,        # ← new
+            }
+
+            out_path = Path(str(output_file).replace(".p", f"_{data_set_id}.p"))
+            with open(out_path, "wb") as h:
+                pickle.dump(seq_embedding_output, h)
+
+        print("done")
     ###################################################################################################################
     ###################################################################################################################
     return seq_embedding_output
+
 
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$#
@@ -919,24 +1198,42 @@ if __name__ == "__main__":
     # Args
     Step_code = "N03_"
     #--------------------------------------------------#
-    dataset_nme_list     = ["NovoEnzyme",            # 0
-                            "PafAVariants",          # 1
-                            "GFP",                   # 2
-                            "Rubisco",               # 3
-                            "ERBC",                  # 4
+    dataset_nme_list     = ["NovoEnzyme"        ,         # 0
+                            "PafAVariants"      ,         # 1
+                            "GFP"               ,         # 2
+                            "Rubisco"           ,         # 3
+                            "ERBC"              ,         # 4
+
+                            "GB1_LoVSHi_train"  ,         # 5
+                            "GB1_LoVSHi_test"   ,         # 6
+                            "GB1_1VSrest_train" ,         # 7
+                            "GB1_1VSrest_test"  ,         # 8
+                            "GB1_2VSrest_train" ,         # 9
+                            "GB1_2VSrest_test"  ,         # 10
+                            "GB1_3VSrest_train" ,         # 11
+                            "GB1_3VSrest_test"  ,         # 12
+
+                            "beta_lact_train"   ,         # 13
+                            "beta_lact_test"    ,         # 14
+
+                            "PEERGFP_train"     ,         # 15
+                            "PEERGFP_test"      ,         # 16
+                            "PEERGFP_trainonly" ,         # 17
 
                             ]
-    dataset_nme          = dataset_nme_list[4]
+
+    
+    dataset_nme          = dataset_nme_list[17]
     data_folder          = Path("N_DataProcessing/")
     input_seqs_fasta_file = "N00_" + dataset_nme + ".fasta"
     #====================================================================================================#
     #====================================================================================================#
     # List Index:          [0]     [1]      [2]       [3]       [4]     [5]     [6]       [7]      [8]
     models_list      = ["TAPE", "TAPE_FT", "BERT", "ALBERT", "Electra", "T5", "Xlnet", "ESM_1B", "ESM_1V", 
-    #                        [9]         [10]        [11]         [12]        [13]
-                        "ESM_2_650", "ESM_2_3B`", "ESM_2_3B", "ESM_2_15B", "Unirep"]
+    #                        [9]         [10]        [11]        [12]    [13]       [14]         [15]         [16]
+                        "ESM_2_650", "ESM_2_3B", "ESM_2_15B", "Unirep", "T5XL", "Ankh_Large", "Ankh_Base", "CARP_640M"]
     # Select model using index. ( ##### !!!!! models_list[3] Electra deprecated ! )
-    model_select     = models_list[9] 
+    model_select     = models_list[7] 
     pretraining_name = "X01_" + dataset_nme + "_FT_inter_epoch5_trial_training.pt"
     #====================================================================================================#
     output_file_name_header = Step_code + dataset_nme + "_embedding_"

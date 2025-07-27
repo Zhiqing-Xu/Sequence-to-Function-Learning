@@ -1,36 +1,25 @@
 #!/usr/bin/env python
 # coding: utf-8
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$#
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$#
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$#
-from rdkit import Chem
-from rdkit import DataStructs
-from rdkit.Chem import AllChem
-from rdkit.Chem import MACCSkeys
-from rdkit.Chem.AtomPairs import Pairs
-from rdkit.Chem.AtomPairs import Torsions
-from rdkit.Chem.Fingerprints import FingerprintMols
-###################################################################################################################
-###################################################################################################################
+#====================================================================================================#
 # The following code ensures the code work properly in 
 # MS VS, MS VS CODE and jupyter notebook on both Linux and Windows.
-#--------------------------------------------------#
 import os 
 import sys
-import os.path
+from os import path
 from sys import platform
 from pathlib import Path
-#--------------------------------------------------#
+
 if __name__ == "__main__":
+    print("\n\n")
     print("="*80)
     if os.name == 'nt' or platform == 'win32':
         print("Running on Windows")
         if 'ptvsd' in sys.modules:
             print("Running in Visual Studio")
-#--------------------------------------------------#
+
     if os.name != 'nt' and platform != 'win32':
         print("Not Running on Windows")
-#--------------------------------------------------#
+
     if "__file__" in globals().keys():
         print('CurrentDir: ', os.getcwd())
         try:
@@ -47,7 +36,8 @@ if __name__ == "__main__":
                 os.chdir(workbookDir)
         except:
             print("Problems with navigating to the workbook dir.")
-#--------------------------------------------------#
+#====================================================================================================#
+# Imports
 #########################################################################################################
 #########################################################################################################
 #--------------------------------------------------#
@@ -321,14 +311,36 @@ if __name__ == "__main__":
     # Inputs
     Step_code = "N00_"
     #--------------------------------------------------#
-    dataset_nme_list = ["NovoEnzyme",            # 0
-                        "PafAVariants",          # 1
-                        "GFP",                   # 2
-                        "Rubisco",               # 3
+    dataset_nme_list = ["NovoEnzyme"        ,         # 0
+                        "PafAVariants"      ,         # 1
+                        "GFP"               ,         # 2
+                        "Rubisco"           ,         # 3
+                        "ERBC"              ,         # 4
+
+                        "GB1_LoVSHi_train"  ,         # 5
+                        "GB1_LoVSHi_test"   ,         # 6
+                        "GB1_1VSrest_train" ,         # 7
+                        "GB1_1VSrest_test"  ,         # 8
+                        "GB1_2VSrest_train" ,         # 9
+                        "GB1_2VSrest_test"  ,         # 10
+                        "GB1_3VSrest_train" ,         # 11
+                        "GB1_3VSrest_test"  ,         # 12
+
+                        "beta_lact_train"   ,         # 13
+                        "beta_lact_test"    ,         # 14
+
+                        "PEERGFP_train"     ,         # 15
+                        "PEERGFP_test"      ,         # 16
+                        "PEERGFP_trainonly" ,         # 17
+
+                        "GFP_train"         ,         # 18
+                        "GFP_test"          ,         # 19
 
                         ]
 
-    dataset_nme      = dataset_nme_list[2]
+
+
+    dataset_nme      = dataset_nme_list[17]
     #--------------------------------------------------#
     # Additional Informationm for certain datasets.
 
@@ -344,19 +356,39 @@ if __name__ == "__main__":
                               "FC2_3"                 : "FC2/3"                       ,
                               "FC4"                   : "FC4_s-1"                     ,
                             }
-    
-    tm                    = {"tm" : "tm"}
-    Kcatmean              = {"Kcatmean" : "Kcatmean"}
+
 
     #--------------------------------------------------#
     # A dictionary of different datasets. 
     #                    dataset_nme-----------value_col------------------dataset_path----------------------------------seqs_len
-    data_info_dict   = {"NovoEnzyme"       : ["tm"                     , "./NovoEnzyme/train.csv"                     ,   1200, ],  # 0
-                        "PafAVariants"     : ["PafAVariants_val_dict"  , "./PafA_Variants/abf8761_data_processed.csv" ,   1200, ],  # 1
-                        "GFP"              : ["quantitative_function"  , "./GFP/sarkisyan.csv"                        ,   1200, ],  # 2
-                        "Rubisco"          : ["Kcatmean"              , "./Rubisco.csv"                               ,   1200, ],  # 3
-                        ""                 : [""                       , ""                                           ,   1200, ],  # 4
+    data_info_dict   = {"NovoEnzyme"             : ["tm"                     , "./NovoEnzyme/train.csv"                     ,   1200, ],  # 0
+                        "PafAVariants"           : ["PafAVariants_val_dict"  , "./PafA_Variants/abf8761_data_processed.csv" ,   1200, ],  # 1
+                        "GFP"                    : ["quantitative_function"  , "./GFP/sarkisyan.csv"                        ,   1200, ],  # 2
+                        "Rubisco"                : ["Kcatmean"               , "./Rubisco/Rubisco.csv"                      ,   1200, ],  # 3
+                        "ERBC"                   : ["yield"                  , "./EnoateReductase/ERBC.csv"                 ,   1200, ],  # 4
+
+                        "GB1_LoVSHi_train"       : ["quantitative_function"  , "./GB1/low_vs_high_train.csv"                ,   1022, ],  # 5
+                        "GB1_LoVSHi_test"        : ["quantitative_function"  , "./GB1/low_vs_high_test.csv"                 ,   1022, ],  # 6
+                        "GB1_1VSrest_train"      : ["quantitative_function"  , "./GB1/one_vs_rest_train.csv"                ,   1022, ],  # 7
+                        "GB1_1VSrest_test"       : ["quantitative_function"  , "./GB1/one_vs_rest_test.csv"                 ,   1022, ],  # 8
+                        "GB1_2VSrest_train"      : ["quantitative_function"  , "./GB1/two_vs_rest_train.csv"                ,   1022, ],  # 9
+                        "GB1_2VSrest_test"       : ["quantitative_function"  , "./GB1/two_vs_rest_test.csv"                 ,   1022, ],  # 10
+                        "GB1_3VSrest_train"      : ["quantitative_function"  , "./GB1/three_vs_rest_train.csv"              ,   1022, ],  # 11
+                        "GB1_3VSrest_test"       : ["quantitative_function"  , "./GB1/three_vs_rest_test.csv"               ,   1022, ],  # 12
+
+                        "beta_lact_train"        : ["quantitative_function"  , "./betalactamase/betalactamase_train.csv"    ,   1022, ],  # 13
+                        "beta_lact_test"         : ["quantitative_function"  , "./betalactamase/betalactamase_test.csv"     ,   1022, ],  # 14
+ 
+                        "PEERGFP_train"          : ["quantitative_function"  , "./PEERGFP/fluorescence_train_.csv"          ,   1022, ],  # 15
+                        "PEERGFP_test"           : ["quantitative_function"  , "./PEERGFP/fluorescence_test.csv"            ,   1022, ],  # 16
+                        "PEERGFP_trainonly"      : ["quantitative_function"  , "./PEERGFP/fluorescence_train.csv"           ,   1022, ],  # 17
+
+                        "GFP_train"              : ["quantitative_function"  , "./PEERGFP/GFP_train.csv"                    ,   1022, ],  # 18
+                        "GFP_test"               : ["quantitative_function"  , "./PEERGFP/GFP_test.csv"                     ,   1022, ],  # 19
+
                        }
+
+
 
     #--------------------------------------------------#
     target_nme   = data_info_dict[dataset_nme][0]

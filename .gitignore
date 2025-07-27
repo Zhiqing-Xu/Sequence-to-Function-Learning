@@ -7,6 +7,8 @@
 /N_DataProcessing/N05A_intermediate_results
 /N_DataProcessing/N05B_intermediate_results
 /N_DataProcessing/S05A_intermediate_results
+/N_DataProcessing/N05X_intermediate_results
+/N_DataProcessing/N05K_intermediate_results
 #--------------------------------------------------# 
 # Large Files 
 N_DataProcessing/N03_GFP_embedding_ESM_2_650_0.p 
@@ -25,3 +27,5 @@ N_DataProcessing/N03_PafAVariants_embedding_ESM_2_3B_2.p
 N_DataProcessing/N03_PafAVariants_embedding_ESM_2_650_0.p 
 N_DataProcessing/N03_Rubisco_embedding_ESM_2_3B.p 
 N_DataProcessing/N03_ERBC_embedding_ESM_2_650_0.p 
+N_DataProcessing/N03_PEERGFP_test_embedding_Unirep.p 
+N_DataProcessing/N03_PEERGFP_train_embedding_Unirep.p 
