@@ -16,13 +16,44 @@ The figure below illustrates the full workflow for protein sequence-to-function 
 
 ### 1. GB1 Fitness Prediction (FLIP Benchmark)
 
-| Model                     | 1-vs-rest | 2-vs-rest | 3-vs-rest | low-vs-high |
-|--------------------------|-----------|-----------|-----------|--------------|
-| ESM-1b + ConvPool        | 0.310 ± 0.020 | **0.646 ± 0.006** | **0.878 ± 0.003** | 0.433 ± 0.010 |
-| ESM-1b + AttPool         | **0.334 ± 0.012** | 0.619 ± 0.007 | 0.852 ± 0.005 | **0.447 ± 0.004** |
-| FLIP (Best Baseline)     | 0.32      | 0.59      | 0.83      | 0.59         |
+<p align="center">
 
-Both pooling strategies achieve strong results across the FLIP GB1 splits, with convolutional pooling showing superior performance in high-data regimes.
+<table>
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>1-vs-rest</th>
+      <th>2-vs-rest</th>
+      <th>3-vs-rest</th>
+      <th>low-vs-high</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ESM-1b + ConvPool</td>
+      <td>0.310 ± 0.020</td>
+      <td><b>0.646 ± 0.006</b></td>
+      <td><b>0.878 ± 0.003</b></td>
+      <td>0.433 ± 0.010</td>
+    </tr>
+    <tr>
+      <td>ESM-1b + AttPool</td>
+      <td><b>0.334 ± 0.012</b></td>
+      <td>0.619 ± 0.007</td>
+      <td>0.852 ± 0.005</td>
+      <td><b>0.447 ± 0.004</b></td>
+    </tr>
+    <tr>
+      <td>FLIP (Best Baseline)</td>
+      <td>0.32</td>
+      <td>0.59</td>
+      <td>0.83</td>
+      <td>0.59</td>
+    </tr>
+  </tbody>
+</table>
+
+</p>
 
 ---
 
@@ -32,14 +63,41 @@ Both pooling strategies achieve strong results across the FLIP GB1 splits, with 
   <img src="_Figures/_PhD_Figure_SeqsToFunc_Results_BetaLactamase.png" alt="Beta-Lactamase Results" width="600">
 </p>
 
-| Model                    | Parameters  | Spearman’s ρ       |
-|-------------------------|-------------|---------------------|
-| ESM-1b + ConvPool       | ~1.7M       | **0.886 ± 0.007**   |
-| ESM-1b + AttPool        | ~1.4M       | 0.828 ± 0.014       |
-| Fine-Tuned ESM-1b       | ~650M       | 0.839 ± 0.053       |
-| ESM-1b + AvgPool        | ~0.9M       | 0.528 ± 0.009       |
+<p align="center">
 
-Convolutional pooling outperforms all baselines, including full model fine-tuning, while requiring far fewer parameters.
+<table>
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Parameters</th>
+      <th>Spearman’s ρ</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ESM-1b + ConvPool</td>
+      <td>~1.7M</td>
+      <td><b>0.886 ± 0.007</b></td>
+    </tr>
+    <tr>
+      <td>ESM-1b + AttPool</td>
+      <td>~1.4M</td>
+      <td>0.828 ± 0.014</td>
+    </tr>
+    <tr>
+      <td>Fine-Tuned ESM-1b</td>
+      <td>~650M</td>
+      <td>0.839 ± 0.053</td>
+    </tr>
+    <tr>
+      <td>ESM-1b + AvgPool</td>
+      <td>~0.9M</td>
+      <td>0.528 ± 0.009</td>
+    </tr>
+  </tbody>
+</table>
+
+</p>
 
 ---
 
@@ -49,26 +107,79 @@ Convolutional pooling outperforms all baselines, including full model fine-tunin
   <img src="_Figures/_PhD_Figure_SeqsToFunc_Results_PafA.png" alt="PafA Results" width="600">
 </p>
 
-| Pooling Method      | Model     | Pearson’s r        | Spearman’s ρ       |
-|---------------------|-----------|---------------------|---------------------|
-| Convolutional Pool  | ESM-2     | 0.594 ± 0.072       | 0.600 ± 0.059       |
-| Self-Attention Pool | ESM-2     | **0.619 ± 0.047**   | **0.641 ± 0.039**   |
+<p align="center">
 
-Self-attention pooling performs best on this challenging mutation dataset, where the task is to predict the effect of substitutions not observed during training.
+<table>
+  <thead>
+    <tr>
+      <th>Pooling Method</th>
+      <th>Model</th>
+      <th>Pearson’s r</th>
+      <th>Spearman’s ρ</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Convolutional Pool</td>
+      <td>ESM-2</td>
+      <td>0.594 ± 0.072</td>
+      <td>0.600 ± 0.059</td>
+    </tr>
+    <tr>
+      <td>Self-Attention Pool</td>
+      <td>ESM-2</td>
+      <td><b>0.619 ± 0.047</b></td>
+      <td><b>0.641 ± 0.039</b></td>
+    </tr>
+  </tbody>
+</table>
+
+</p>
 
 ---
 
 ### 4. avGFP Fluorescence Landscape Prediction
 
-| Model                       | Parameters       | Spearman’s ρ         |
-|----------------------------|------------------|-----------------------|
-| ESM-1b + ConvPool          | ~5.5M            | 0.662 ± 0.002         |
-| ESM-1b + AttPool           | ~3.5M            | 0.651 ± 0.003         |
-| Fine-Tuned ESM-1b          | ~650M            | **0.679 ± 0.002**     |
-| ESM-1b + AvgPool           | ~0.9M            | 0.430 ± 0.002         |
-| eUniRep + Ridge Regression | Non-neural model | 0.427 ± 0.003         |
+<p align="center">
 
-The proposed pooling methods significantly outperform baseline approaches with minimal training overhead.
+<table>
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Parameters</th>
+      <th>Spearman’s ρ</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ESM-1b + ConvPool</td>
+      <td>~5.5M</td>
+      <td>0.662 ± 0.002</td>
+    </tr>
+    <tr>
+      <td>ESM-1b + AttPool</td>
+      <td>~3.5M</td>
+      <td>0.651 ± 0.003</td>
+    </tr>
+    <tr>
+      <td>Fine-Tuned ESM-1b</td>
+      <td>~650M</td>
+      <td><b>0.679 ± 0.002</b></td>
+    </tr>
+    <tr>
+      <td>ESM-1b + AvgPool</td>
+      <td>~0.9M</td>
+      <td>0.430 ± 0.002</td>
+    </tr>
+    <tr>
+      <td>eUniRep + Ridge Regression</td>
+      <td>Non-neural top model used</td>
+      <td>0.427 ± 0.003</td>
+    </tr>
+  </tbody>
+</table>
+
+</p>
 
 ---
 
@@ -78,7 +189,8 @@ This framework demonstrates that simple yet effective pooling strategies applied
 
 
 
-### Pipeline.
+
+## Pipeline.
 
 - N00_Data_Preprocessing.py     : Preprocess and the dataset.
 - N03_LM_Embeddings.py          : Get sequence embeddings.
