@@ -16,7 +16,7 @@ The figure below illustrates the full workflow for protein sequence-to-function 
 
 ### 1. GB1 Fitness Prediction (FLIP Benchmark)
 
-<p align="center">
+<div align="center">
 
 <table>
   <thead>
@@ -53,7 +53,7 @@ The figure below illustrates the full workflow for protein sequence-to-function 
   </tbody>
 </table>
 
-</p>
+</div>
 
 ---
 
@@ -63,7 +63,7 @@ The figure below illustrates the full workflow for protein sequence-to-function 
   <img src="_Figures/_PhD_Figure_SeqsToFunc_Results_BetaLactamase.png" alt="Beta-Lactamase Results" width="600">
 </p>
 
-<p align="center">
+<div align="center">
 
 <table>
   <thead>
@@ -97,7 +97,7 @@ The figure below illustrates the full workflow for protein sequence-to-function 
   </tbody>
 </table>
 
-</p>
+</div>
 
 ---
 
@@ -107,7 +107,7 @@ The figure below illustrates the full workflow for protein sequence-to-function 
   <img src="_Figures/_PhD_Figure_SeqsToFunc_Results_PafA.png" alt="PafA Results" width="600">
 </p>
 
-<p align="center">
+<div align="center">
 
 <table>
   <thead>
@@ -134,13 +134,13 @@ The figure below illustrates the full workflow for protein sequence-to-function 
   </tbody>
 </table>
 
-</p>
+</div>
 
 ---
 
 ### 4. avGFP Fluorescence Landscape Prediction
 
-<p align="center">
+<div align="center">
 
 <table>
   <thead>
@@ -179,15 +179,13 @@ The figure below illustrates the full workflow for protein sequence-to-function 
   </tbody>
 </table>
 
-</p>
+</div>
 
 ---
 
 ## Summary
 
 This framework demonstrates that simple yet effective pooling strategies applied to pretrained pLM embeddings can achieve competitive performance across diverse protein function prediction tasks. Convolutional pooling, in particular, offers strong predictive power for mutation effect datasets with high sequence similarity, while attention pooling excels in tasks requiring generalization to unseen residues.
-
-
 
 
 ## Pipeline.
