@@ -1,6 +1,9 @@
 /__pycache__
 /N_Deprecated
 *.png
+!_Figures/_PhD_Figure_SeqToFunc_Intro_pLMbased.png
+!_Figures/_PhD_Figure_SeqsToFunc_Results_BetaLactamase.png
+!_Figures/_PhD_Figure_SeqsToFunc_Results_PafA.png
 *.p
 *.fasta
 /N05B_SQembSAtt_y_Experiment.py
